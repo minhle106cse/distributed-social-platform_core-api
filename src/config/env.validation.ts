@@ -1,7 +1,17 @@
-import * as Joi from 'joi'
+import { z } from 'zod';
 
-export const envValidationSchema = Joi.object({
-  NODE_ENV: Joi.string().valid('development', 'production', 'test'),
-  PORT: Joi.number().default(3000),
-  CORS_ALLOWED_ORIGINS: Joi.string().required(),
-})
+export const envValidationSchema = z.object({
+  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  PORT: z.coerce.number().default(3000),
+  CORS_ALLOWED_ORIGINS: z.string().optional(),
+});
+
+export function validate(config: Record<string, unknown>) {
+  const result = envValidationSchema.safeParse(config);
+
+  if (!result.success) {
+    throw new Error(`Environment variables validation failed: ${result.error.message}`);
+  }
+
+  return result.data;
+}

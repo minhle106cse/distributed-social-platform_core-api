@@ -1,24 +1,28 @@
 import { NestFastifyApplication } from '@nestjs/platform-fastify'
 import helmet from '@fastify/helmet'
 import cors from '@fastify/cors'
-import cookie from '@fastify/cookie'
-import { setupValidationError } from './validation-error'
+import compress from '@fastify/compress'
+import rateLimit from '@fastify/rate-limit'
 import { setupSwagger } from './swagger'
 
 export async function setupFastify(app: NestFastifyApplication) {
   const fastify = app.getHttpAdapter().getInstance()
 
-  await fastify.register(helmet, {
-    contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false,
-  })
-
   await fastify.register(cors, {
-    origin: true,
+    origin: ['*'],
     credentials: true,
   })
 
-  await fastify.register(cookie)
+  await fastify.register(rateLimit, {
+    max: 100,
+    timeWindow: '1 minute',
+  })
 
-  setupValidationError(fastify)
+  await fastify.register(helmet)
+
+  await fastify.register(compress, {
+    encodings: ['gzip', 'deflate', 'br'],
+  })
+
   setupSwagger(app)
 }

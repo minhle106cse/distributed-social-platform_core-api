@@ -1,12 +1,14 @@
-import { Type, Static } from '@sinclair/typebox'
+import { z } from 'zod'
+import { createZodDto } from 'nestjs-zod'
 
-export const CreateUserSchema = Type.Object({
-  email: Type.String({ format: 'email' }),
-  name: Type.String({ minLength: 2 }),
+export const CreateUserSchema = z.object({
+  email: z.string().email(),
+  name: z.string().min(2),
 })
 
-export type CreateUserRequest = Static<typeof CreateUserSchema>
-export type CreateUserReponse = {
+export class CreateUserRequest extends createZodDto(CreateUserSchema) {}
+
+export class CreateUserResponse {
   id: string
   email: string
   name: string
