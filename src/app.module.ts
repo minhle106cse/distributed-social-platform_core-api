@@ -8,6 +8,7 @@ import { LoggerModule } from 'nestjs-pino'
 import { ConfigModule } from './config/config.module'
 import { ConfigService } from '@nestjs/config'
 import { PrismaModule } from './prisma/prisma.module'
+import { createLogger } from '@distributed-social-platform/shared-kernel'
 
 @Module({
   imports: [
@@ -15,44 +16,18 @@ import { PrismaModule } from './prisma/prisma.module'
     PrismaModule,
     LoggerModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
+      useFactory: (_config: ConfigService) => ({
         pinoHttp: {
-          level: config.get<string>('env.nodeEnv') === 'production' ? 'info' : 'debug',
-
-          genReqId: (req) => req.headers['x-request-id'] ?? crypto.randomUUID(),
-
+          logger: createLogger('core-api'),
           autoLogging: {
             ignore: (req) => req.url === '/health' || req.url === '/metrics',
           },
-
-          formatters: {
-            level: (label) => ({ level: label }),
-          },
-
           customAttributeKeys: {
             req: 'request',
             res: 'response',
             err: 'error',
             responseTime: 'responseTime',
           },
-
-          base: {
-            service: 'core-api',
-            env: config.get<string>('env.nodeEnv'),
-          },
-
-          transport:
-            config.get<string>('env.nodeEnv') !== 'production'
-              ? {
-                  target: 'pino-pretty',
-                  options: {
-                    colorize: true,
-                    translateTime: 'yyyy-mm-dd HH:MM:ss',
-                    singleLine: true,
-                    ignore: 'pid,hostname',
-                  },
-                }
-              : undefined,
         },
       }),
     }),
@@ -76,4 +51,4 @@ import { PrismaModule } from './prisma/prisma.module'
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }

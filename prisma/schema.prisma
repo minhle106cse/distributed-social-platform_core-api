@@ -1,23 +1,193 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
+
+// ============================================================================
+// MODULE: USER & PROFILE (Bounded Context: Identity & Graph)
+// ============================================================================
 
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
   fullName  String?  @map("full_name")
+  
+  // Profile metrics
+  trustScore Int      @default(100) @map("trust_score")
+  avatarUrl  String?  @map("avatar_url")
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at") // Soft delete
+
+  // Relations WITHIN this bounded context
+  followers Follow[] @relation("UserFollowers")
+  following Follow[] @relation("UserFollowing")
+
+  @@index([email])
+}
+
+model Follow {
+  id          String   @id @default(uuid())
+  followerId  String   @map("follower_id")
+  followingId String   @map("following_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  follower  User @relation("UserFollowing", fields: [followerId], references: [id])
+  following User @relation("UserFollowers", fields: [followingId], references: [id])
+
+  @@unique([followerId, followingId])
+}
+
+
+// ============================================================================
+// MODULE: POST (Bounded Context: Content & Social)
+// ============================================================================
+// MICROSERVICE RULE: No hard foreign keys to the User table. 
+// We use authorId as a loose reference.
+
+model Post {
+  id        String   @id @default(uuid())
+  authorId  String   @map("author_id") // Loose reference to User.id
+  content   String   @db.Text
+  
+  // Denormalized metrics for read performance
+  reactionCount Int @default(0) @map("reaction_count")
+  commentCount Int @default(0) @map("comment_count")
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at") // Soft delete
+
+  // Relations WITHIN this bounded context
+  comments PostComment[]
+  reactions    PostReaction[]
+
+  @@index([authorId])
+}
+
+model PostComment {
+  id        String   @id @default(uuid())
+  postId    String   @map("post_id")
+  authorId  String   @map("author_id") // Loose reference to User.id
+  content   String   @db.Text
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  post Post @relation(fields: [postId], references: [id])
+
+  @@index([postId])
+  @@index([authorId])
+}
+
+enum ReactionType {
+  LIKE
+  LOVE
+  HAHA
+  WOW
+  SAD
+  ANGRY
+}
+
+model PostReaction {
+  id        String       @id @default(uuid())
+  postId    String       @map("post_id")
+  userId    String       @map("user_id") // Loose reference to User.id
+  type      ReactionType @default(LIKE)
+  
+  createdAt DateTime     @default(now()) @map("created_at")
+
+  post Post @relation(fields: [postId], references: [id])
+
+  @@unique([postId, userId])
+  @@map("post_reactions")
+}
+
+
+// ============================================================================
+// MODULE: PRODUCTIVITY (Bounded Context: Personal tracking)
+// ============================================================================
+
+model Expense {
+  id          String   @id @default(uuid())
+  ownerId     String   @map("owner_id") // Loose reference to User.id
+  amount      BigInt   // Storing cents to avoid float issues
+  currency    String   @default("VND")
+  category    String
+  description String?
+  date        DateTime
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@index([ownerId, date])
+}
+
+model Todo {
+  id          String   @id @default(uuid())
+  ownerId     String   @map("owner_id") // Loose reference to User.id
+  title       String
+  isCompleted Boolean  @default(false) @map("is_completed")
+  dueDate     DateTime? @map("due_date")
+  
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  @@index([email])
+  @@index([ownerId])
+}
+
+model EmotionLog {
+  id        String   @id @default(uuid())
+  ownerId   String   @map("owner_id") // Loose reference to User.id
+  emotion   String   // e.g., HAPPY, SAD, ANGRY, CALM
+  intensity Int      @default(5) // 1-10
+  note      String?
+  
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([ownerId])
+}
+
+
+// ============================================================================
+// MODULE: WALLET (Bounded Context: Financial Transactions)
+// ============================================================================
+
+model Wallet {
+  id        String   @id @default(uuid())
+  ownerId   String   @unique @map("owner_id") // Loose reference to User.id
+  balance   BigInt   @default(0) // Storing cents/satoshi
+  currency  String   @default("CREDIT")
+  
+  // Optimistic Locking version
+  version   Int      @default(1)
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations WITHIN this bounded context
+  transactions Transaction[]
+}
+
+model Transaction {
+  id          String   @id @default(uuid())
+  walletId    String   @map("wallet_id")
+  amount      BigInt   // Positive for credit, negative for debit
+  type        String   // DEPOSIT, WITHDRAW, TIP_SENT, TIP_RECEIVED
+  referenceId String?  @map("reference_id") // ID of related post/bounty
+  description String?
+  
+  createdAt DateTime @default(now()) @map("created_at")
+
+  wallet Wallet @relation(fields: [walletId], references: [id])
+
+  @@index([walletId])
 }

@@ -1,0 +1,19 @@
+service: core-api
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  region: ap-southeast-1
+  memorySize: 512
+  timeout: 15
+  environment:
+    NODE_ENV: production
+    DATABASE_URL: ${env:DATABASE_URL}
+
+functions:
+  api:
+    handler: dist/main.lambda.handler
+    events:
+      - httpApi:
+          path: /api/core/{proxy+}
+          method: '*'
