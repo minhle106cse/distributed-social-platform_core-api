@@ -7,10 +7,12 @@ import { APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core'
 import { LoggerModule } from 'nestjs-pino'
 import { ConfigModule } from './config/config.module'
 import { ConfigService } from '@nestjs/config'
+import { PrismaModule } from './prisma/prisma.module'
 
 @Module({
   imports: [
     ConfigModule,
+    PrismaModule,
     LoggerModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -35,7 +37,7 @@ import { ConfigService } from '@nestjs/config'
           },
 
           base: {
-            service: 'api-gateway',
+            service: 'core-api',
             env: config.get<string>('env.nodeEnv'),
           },
 

@@ -5,8 +5,8 @@ export function setupSwagger(app: INestApplication) {
   if (process.env.NODE_ENV === 'production') return
 
   const config = new DocumentBuilder()
-    .setTitle('API')
-    .setDescription('Clean Architecture + Fastify')
+    .setTitle('Core API')
+    .setDescription('Distributed Social Platform — Core API (Modular Monolith)')
     .setVersion('1.0.0')
     .addBearerAuth(
       {
