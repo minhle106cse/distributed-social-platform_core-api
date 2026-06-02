@@ -21,7 +21,12 @@ export async function buildServer() {
   app.enableShutdownHooks()
 
   await setupFastify(app)
-  
+
+  const fastifyInstance = app.getHttpAdapter().getInstance()
+  fastifyInstance.get('/health', async () => {
+    return { status: 'ok' }
+  })
+
   await app.init()
 
   return app

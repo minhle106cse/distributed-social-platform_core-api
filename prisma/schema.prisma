@@ -7,6 +7,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // ============================================================================
@@ -21,6 +22,9 @@ model User {
   // Profile metrics
   trustScore Int      @default(100) @map("trust_score")
   avatarUrl  String?  @map("avatar_url")
+  
+  // GrowthGarden Specific
+  shields    Int      @default(0) // Phao cứu sinh để bảo vệ streak
   
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -47,19 +51,17 @@ model Follow {
 
 
 // ============================================================================
-// MODULE: POST (Bounded Context: Content & Social)
+// MODULE: SOCIAL (Bounded Context: Healing Feed Engine)
 // ============================================================================
-// MICROSERVICE RULE: No hard foreign keys to the User table. 
-// We use authorId as a loose reference.
 
 model Post {
   id        String   @id @default(uuid())
   authorId  String   @map("author_id") // Loose reference to User.id
   content   String   @db.Text
   
-  // Denormalized metrics for read performance
-  reactionCount Int @default(0) @map("reaction_count")
-  commentCount Int @default(0) @map("comment_count")
+  // Optional links to Garden/Weather
+  relatedSeedId   String?  @map("related_seed_id")
+  relatedWeatherId String? @map("related_weather_id")
   
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -87,22 +89,20 @@ model PostComment {
   @@index([authorId])
 }
 
-enum ReactionType {
-  LIKE
-  LOVE
-  HAHA
-  WOW
-  SAD
-  ANGRY
+enum VibeType {
+  WATER_DROP    // Gửi nước
+  SUNLIGHT      // Gửi nắng
+  SPARKLE       // Lấp lánh/Cổ vũ
+  HUG           // Ôm (Đồng cảm khi thất bại)
 }
 
 model PostReaction {
-  id        String       @id @default(uuid())
-  postId    String       @map("post_id")
-  userId    String       @map("user_id") // Loose reference to User.id
-  type      ReactionType @default(LIKE)
+  id        String   @id @default(uuid())
+  postId    String   @map("post_id")
+  userId    String   @map("user_id") // Loose reference to User.id
+  type      VibeType @default(SPARKLE)
   
-  createdAt DateTime     @default(now()) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at")
 
   post Post @relation(fields: [postId], references: [id])
 
@@ -112,7 +112,77 @@ model PostReaction {
 
 
 // ============================================================================
-// MODULE: PRODUCTIVITY (Bounded Context: Personal tracking)
+// MODULE: GARDEN (Bounded Context: Goal & Habit Planting)
+// ============================================================================
+
+enum SeedState {
+  SEED      // Hạt giống mới trồng
+  SPROUT    // Nảy mầm (Đã tưới vài lần)
+  TREE      // Đang phát triển tốt
+  BLOOMING  // Đơm hoa (Đạt mốc lớn)
+  DORMANT   // Nghỉ ngơi (User chọn tạm dừng hoặc lỡ 1 ngày)
+}
+
+model HabitSeed {
+  id          String    @id @default(uuid())
+  ownerId     String    @map("owner_id") // Loose reference to User.id
+  title       String
+  description String?
+  state       SeedState @default(SEED)
+  
+  // Streaks & Stats
+  currentStreak Int       @default(0) @map("current_streak")
+  longestStreak Int       @default(0) @map("longest_streak")
+  waterCount    Int       @default(0) @map("water_count")
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  wateringLogs WateringLog[]
+
+  @@index([ownerId])
+}
+
+model WateringLog {
+  id        String   @id @default(uuid())
+  seedId    String   @map("seed_id")
+  ownerId   String   @map("owner_id") // Loose reference to User.id
+  note      String?
+  
+  wateredAt DateTime @default(now()) @map("watered_at")
+
+  seed HabitSeed @relation(fields: [seedId], references: [id])
+
+  @@index([seedId])
+  @@index([ownerId])
+}
+
+// ============================================================================
+// MODULE: WEATHER (Bounded Context: Emotion Tracker)
+// ============================================================================
+
+enum WeatherCondition {
+  SUNNY       // Vui vẻ, tích cực
+  RAINY       // Buồn nhẹ, mệt mỏi
+  STORMY      // Tức giận, stress
+  CLOUDY      // Trống rỗng, bình thường
+  RAINBOW     // Cực kỳ hạnh phúc
+}
+
+model WeatherLog {
+  id        String           @id @default(uuid())
+  ownerId   String           @map("owner_id") // Loose reference to User.id
+  condition WeatherCondition
+  intensity Int              @default(5) // 1-10
+  note      String?
+  
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([ownerId])
+}
+
+// ============================================================================
+// MODULE: FINANCE (Bounded Context: Personal Expense Tracker - Phase 2)
 // ============================================================================
 
 model Expense {
@@ -131,41 +201,16 @@ model Expense {
   @@index([ownerId, date])
 }
 
-model Todo {
-  id          String   @id @default(uuid())
-  ownerId     String   @map("owner_id") // Loose reference to User.id
-  title       String
-  isCompleted Boolean  @default(false) @map("is_completed")
-  dueDate     DateTime? @map("due_date")
-  
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  @@index([ownerId])
-}
-
-model EmotionLog {
-  id        String   @id @default(uuid())
-  ownerId   String   @map("owner_id") // Loose reference to User.id
-  emotion   String   // e.g., HAPPY, SAD, ANGRY, CALM
-  intensity Int      @default(5) // 1-10
-  note      String?
-  
-  createdAt DateTime @default(now()) @map("created_at")
-
-  @@index([ownerId])
-}
-
 
 // ============================================================================
-// MODULE: WALLET (Bounded Context: Financial Transactions)
+// MODULE: WALLET & COMPASSION EXCHANGE (Bounded Context: Micro-Bounty)
 // ============================================================================
 
 model Wallet {
   id        String   @id @default(uuid())
   ownerId   String   @unique @map("owner_id") // Loose reference to User.id
-  balance   BigInt   @default(0) // Storing cents/satoshi
-  currency  String   @default("CREDIT")
+  balance   BigInt   @default(100) // Khởi tạo có sẵn 100 Karma
+  currency  String   @default("KARMA")
   
   // Optimistic Locking version
   version   Int      @default(1)
@@ -177,17 +222,44 @@ model Wallet {
   transactions Transaction[]
 }
 
+enum TransactionStatus {
+  PENDING    // Escrow: Đang giữ tiền (chờ người kia giúp)
+  COMPLETED  // Hoàn thành: Tiền đã chuyển vào ví
+  REFUNDED   // Hoàn trả: Giao kèo thất bại, tiền về lại ví
+}
+
 model Transaction {
   id          String   @id @default(uuid())
   walletId    String   @map("wallet_id")
   amount      BigInt   // Positive for credit, negative for debit
-  type        String   // DEPOSIT, WITHDRAW, TIP_SENT, TIP_RECEIVED
-  referenceId String?  @map("reference_id") // ID of related post/bounty
+  type        String   // DEPOSIT, WITHDRAW, BOUNTY_ESCROW, BOUNTY_PAYOUT
+  status      TransactionStatus @default(COMPLETED)
+  referenceId String?  @map("reference_id") // ID của bài Post nhờ vả
   description String?
   
   createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   wallet Wallet @relation(fields: [walletId], references: [id])
 
   @@index([walletId])
+}
+
+// ============================================================================
+// READ MODELS (CQRS)
+// ============================================================================
+
+model PostReadModel {
+  id            String   @id // Cùng ID với Post gốc
+  authorId      String   @map("author_id")
+  content       String   @db.Text
+  
+  reactionCount Int      @default(0) @map("reaction_count")
+  commentCount  Int      @default(0) @map("comment_count")
+  
+  createdAt     DateTime @map("created_at")
+  updatedAt     DateTime @map("updated_at")
+
+  @@index([authorId])
+  @@map("post_read_models")
 }

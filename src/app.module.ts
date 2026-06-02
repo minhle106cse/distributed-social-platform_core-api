@@ -1,18 +1,20 @@
 import { Module } from '@nestjs/common'
-import { UserModule } from './modules/user/presentation/user.module'
-import { HttpLoggingInterceptor } from './common/interceptors/http-logging.interceptor'
-import { ResponseInterceptor } from './common/interceptors/response.interceptor'
-import { GlobalExceptionFilter } from './common/filters/global-exception.filter'
+import { HttpLoggingInterceptor } from './infrastructure/http/interceptors/http-logging.interceptor'
+import { ResponseInterceptor } from './infrastructure/http/interceptors/response.interceptor'
+import { GlobalExceptionFilter } from './infrastructure/http/filter/global-exception.filter'
 import { APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core'
 import { LoggerModule } from 'nestjs-pino'
 import { ConfigModule } from './config/config.module'
 import { ConfigService } from '@nestjs/config'
-import { PrismaModule } from './prisma/prisma.module'
+import { PrismaModule } from './infrastructure/database/prisma/prisma.module'
 import { createLogger } from '@distributed-social-platform/shared-kernel'
+
+import { CqrsModule } from './infrastructure/cqrs/cqrs.module'
 
 @Module({
   imports: [
     ConfigModule,
+    CqrsModule,
     PrismaModule,
     LoggerModule.forRootAsync({
       inject: [ConfigService],
@@ -31,7 +33,6 @@ import { createLogger } from '@distributed-social-platform/shared-kernel'
         },
       }),
     }),
-    UserModule,
   ],
   providers: [
     HttpLoggingInterceptor,

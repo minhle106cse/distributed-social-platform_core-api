@@ -8,9 +8,9 @@ import { validate } from './env.validation'
     NestConfigModule.forRoot({
       isGlobal: true,
       validate,
-      envFilePath: process.env.NODE_ENV === 'production' ? '.env.production' : '.env.development',
+      envFilePath: process.env.NODE_ENV === 'production' ? '.env.production' : '.env',
       load: [envConfig],
     }),
   ],
 })
-export class ConfigModule {}
+export class ConfigModule { }

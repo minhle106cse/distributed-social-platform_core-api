@@ -9,7 +9,7 @@ export async function setupFastify(app: NestFastifyApplication) {
   const fastify = app.getHttpAdapter().getInstance()
 
   await fastify.register(cors, {
-    origin: ['*'],
+    origin: process.env.CORS_ALLOWED_ORIGINS?.split(',') || ['http://localhost:3001'],
     credentials: true,
   })
 
