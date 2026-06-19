@@ -1,13 +1,7 @@
 import { Global, Module, OnApplicationBootstrap } from '@nestjs/common';
 import { DiscoveryModule, DiscoveryService } from '@nestjs/core';
 import { PinoLogger } from 'nestjs-pino';
-import { CommandBusService } from '../../common/cqrs/command-bus.service';
-import { QueryBusService } from '../../common/cqrs/query-bus.service';
-import { EventBusService } from '../../common/cqrs/event-bus.service';
-import { LoggingMiddleware } from '../../common/cqrs/middlewares/logging.middleware';
-import { RetryMiddleware } from '../../common/cqrs/middlewares/retry.middleware';
-import { TransactionMiddleware } from '../../common/cqrs/middlewares/transaction.middleware';
-import { COMMAND_HANDLER_METADATA, QUERY_HANDLER_METADATA, EVENT_HANDLER_METADATA } from '../../common/cqrs/constants';
+import { CommandBusService, QueryBusService, EventBusService, LoggingMiddleware, RetryMiddleware, TransactionMiddleware, COMMAND_HANDLER_METADATA, QUERY_HANDLER_METADATA, EVENT_HANDLER_METADATA } from '@distributed-social-platform/shared-kernel';
 import { TRANSACTION_MANAGER, type ITransactionManager } from '../../common/database/transaction-manager.interface';
 import { isPrismaTransientError } from '../database/prisma/prisma-transient-error';
 
