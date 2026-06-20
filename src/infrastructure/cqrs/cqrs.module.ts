@@ -1,25 +1,38 @@
-import { Global, Module, OnApplicationBootstrap } from '@nestjs/common';
-import { DiscoveryModule, DiscoveryService } from '@nestjs/core';
-import { PinoLogger } from 'nestjs-pino';
-import { CommandBusService, QueryBusService, EventBusService, LoggingMiddleware, RetryMiddleware, TransactionMiddleware, COMMAND_HANDLER_METADATA, QUERY_HANDLER_METADATA, EVENT_HANDLER_METADATA } from '@distributed-social-platform/shared-kernel';
-import { TRANSACTION_MANAGER, type ITransactionManager } from '../../common/database/transaction-manager.interface';
-import { isPrismaTransientError } from '../database/prisma/prisma-transient-error';
+import { Global, Module, OnApplicationBootstrap } from '@nestjs/common'
+import { DiscoveryModule, DiscoveryService } from '@nestjs/core'
+import { PinoLogger } from 'nestjs-pino'
+import {
+  CommandBus,
+  QueryBus,
+  EventBus,
+  LoggingMiddleware,
+  RetryMiddleware,
+  TransactionMiddleware,
+  COMMAND_HANDLER_METADATA,
+  QUERY_HANDLER_METADATA,
+  EVENT_HANDLER_METADATA,
+} from '@distributed-social-platform/shared-kernel'
+import {
+  TRANSACTION_MANAGER,
+  type ITransactionManager,
+} from '../../common/database/transaction-manager.interface'
+import { isPrismaTransientError } from '../database/prisma/prisma-transient-error'
 
 @Global()
 @Module({
   imports: [DiscoveryModule],
   providers: [
     {
-      provide: CommandBusService,
-      useValue: new CommandBusService(),
+      provide: CommandBus,
+      useValue: new CommandBus(),
     },
     {
-      provide: QueryBusService,
-      useValue: new QueryBusService(),
+      provide: QueryBus,
+      useValue: new QueryBus(),
     },
     {
-      provide: EventBusService,
-      useValue: new EventBusService(),
+      provide: EventBus,
+      useValue: new EventBus(),
     },
     {
       provide: LoggingMiddleware,
@@ -33,58 +46,55 @@ import { isPrismaTransientError } from '../database/prisma/prisma-transient-erro
     },
     {
       provide: TransactionMiddleware,
-      useFactory: (transactionManager: ITransactionManager, logger: PinoLogger) => new TransactionMiddleware(transactionManager, logger),
+      useFactory: (transactionManager: ITransactionManager, logger: PinoLogger) =>
+        new TransactionMiddleware(transactionManager, logger),
       inject: [TRANSACTION_MANAGER, PinoLogger],
     },
-    {
-      provide: 'ILogger',
-      useExisting: PinoLogger,
-    },
   ],
-  exports: [CommandBusService, QueryBusService, EventBusService],
+  exports: [CommandBus, QueryBus, EventBus],
 })
 export class CqrsModule implements OnApplicationBootstrap {
   constructor(
-    private readonly commandBus: CommandBusService,
-    private readonly queryBus: QueryBusService,
-    private readonly eventBus: EventBusService,
+    private readonly commandBus: CommandBus,
+    private readonly queryBus: QueryBus,
+    private readonly eventBus: EventBus,
     private readonly loggingMiddleware: LoggingMiddleware,
     private readonly retryMiddleware: RetryMiddleware,
     private readonly transactionMiddleware: TransactionMiddleware,
     private readonly discoveryService: DiscoveryService,
-  ) { }
+  ) {}
 
   onApplicationBootstrap() {
     // 1. Setup middlewares for CommandBus
-    this.commandBus.use(this.loggingMiddleware, this.retryMiddleware, this.transactionMiddleware);
+    this.commandBus.use(this.loggingMiddleware, this.retryMiddleware, this.transactionMiddleware)
 
     // 2. Auto-discover handlers
-    const providers = this.discoveryService.getProviders();
+    const providers = this.discoveryService.getProviders()
 
     providers
       .filter((wrapper) => wrapper.instance && !wrapper.isNotMetatype)
       .forEach((wrapper) => {
-        const { instance, metatype } = wrapper;
+        const { instance, metatype } = wrapper
 
         if (metatype) {
           // Register Command Handlers
-          const command = Reflect.getMetadata(COMMAND_HANDLER_METADATA, metatype);
+          const command = Reflect.getMetadata(COMMAND_HANDLER_METADATA, metatype)
           if (command) {
-            this.commandBus.register(command.name, instance as any);
+            this.commandBus.register(command.name, instance)
           }
 
           // Register Query Handlers
-          const query = Reflect.getMetadata(QUERY_HANDLER_METADATA, metatype);
+          const query = Reflect.getMetadata(QUERY_HANDLER_METADATA, metatype)
           if (query) {
-            this.queryBus.register(query.name, instance as any);
+            this.queryBus.register(query.name, instance)
           }
 
           // Register Event Handlers
-          const event = Reflect.getMetadata(EVENT_HANDLER_METADATA, metatype);
+          const event = Reflect.getMetadata(EVENT_HANDLER_METADATA, metatype)
           if (event) {
-            this.eventBus.register(event.name, instance as any);
+            this.eventBus.register(event.name, instance)
           }
         }
-      });
+      })
   }
 }

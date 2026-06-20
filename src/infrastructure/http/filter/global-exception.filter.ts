@@ -1,6 +1,7 @@
-import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus } from '@nestjs/common'
+import { ArgumentsHost, Catch, ExceptionFilter, HttpException } from '@nestjs/common'
 import { FastifyReply, FastifyRequest } from 'fastify'
-import { ApplicationError, ErrorResponse } from '@distributed-social-platform/shared-kernel'
+import type { ErrorDetails } from '@distributed-social-platform/shared-kernel'
+import { ApplicationError, buildErrorBody, httpStatusToCode } from '@distributed-social-platform/shared-kernel'
 
 interface HttpExceptionResponse {
   message?: string | string[]
@@ -12,7 +13,7 @@ function isHttpExceptionResponse(value: unknown): value is HttpExceptionResponse
   return typeof value === 'object' && value !== null
 }
 
-function isErrorDetails(value: unknown): value is Record<string, unknown> | Array<Record<string, unknown>> | undefined {
+function isErrorDetails(value: unknown): value is ErrorDetails {
   if (value === undefined) return true
   if (Array.isArray(value)) return true
   return typeof value === 'object' && value !== null
@@ -25,13 +26,14 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const reply = ctx.getResponse<FastifyReply>()
     const req = ctx.getRequest<FastifyRequest>()
 
-    let status = HttpStatus.INTERNAL_SERVER_ERROR
+    let status = 500
     let code = 'INTERNAL_SERVER_ERROR'
     let message = 'Internal server error'
-    let details: any
+    let details: ErrorDetails
 
     if (exception instanceof HttpException) {
       status = exception.getStatus()
+      code = httpStatusToCode(status)
       const response = exception.getResponse()
 
       if (typeof response === 'string') {
@@ -42,11 +44,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         } else if (typeof response.message === 'string') {
           message = response.message
         }
-
         if (isErrorDetails(response.errors)) {
           details = response.errors
         }
-
+        // custom code from ZodValidationPipe overrides the HTTP status default
         if (typeof response.code === 'string') {
           code = response.code
         }
@@ -60,20 +61,6 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       req.log.error(exception)
     }
 
-    const body: ErrorResponse = {
-      success: false,
-      message,
-      error: {
-        code,
-        details,
-      },
-      meta: {
-        requestId: req.id,
-        timestamp: new Date().toISOString(),
-        version: '1.0.0'
-      },
-    }
-
-    reply.status(status).send(body)
+    reply.status(status).send(buildErrorBody({ code, message, details, requestId: req.id }))
   }
 }

@@ -1,15 +1,18 @@
 import awsLambdaFastify from '@fastify/aws-lambda'
+import type { APIGatewayProxyEvent, Context } from 'aws-lambda'
 import { createApp } from './app'
 
-let proxy: any
+type LambdaHandler = (event: APIGatewayProxyEvent, context: Context) => Promise<unknown>
 
-async function bootstrap() {
+let proxy: LambdaHandler
+
+async function bootstrap(): Promise<LambdaHandler> {
   const app = await createApp()
   const fastifyInstance = app.getHttpAdapter().getInstance()
-  return awsLambdaFastify(fastifyInstance)
+  return awsLambdaFastify(fastifyInstance) as LambdaHandler
 }
 
-export const handler = async (event: any, context: any) => {
+export const handler = async (event: APIGatewayProxyEvent, context: Context): Promise<unknown> => {
   if (!proxy) {
     proxy = await bootstrap()
   }

@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto'
 import { NestFactory } from '@nestjs/core'
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify'
 import { AppModule } from '../app.module'
@@ -9,6 +10,10 @@ export async function buildServer() {
   const adapter = new FastifyAdapter({
     logger: false,
     bodyLimit: 10 * 1024 * 1024,
+    genReqId: (req) => {
+      const header = req.headers['x-request-id']
+      return Array.isArray(header) ? header[0] : (header ?? randomUUID())
+    },
   })
 
   const app = await NestFactory.create<NestFastifyApplication>(AppModule, adapter, {
@@ -16,17 +21,11 @@ export async function buildServer() {
   })
 
   app.useLogger(app.get(Logger))
-  app.setGlobalPrefix('api/v1')
+  app.setGlobalPrefix('api/v1', { exclude: ['health', 'metrics'] })
   app.useGlobalPipes(new ZodValidationPipe())
   app.enableShutdownHooks()
 
   await setupFastify(app)
-
-  const fastifyInstance = app.getHttpAdapter().getInstance()
-  fastifyInstance.get('/health', async () => {
-    return { status: 'ok' }
-  })
-
   await app.init()
 
   return app

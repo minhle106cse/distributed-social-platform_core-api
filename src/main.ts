@@ -5,9 +5,11 @@ async function bootstrap() {
   const app = await createApp()
   const config = app.get(ConfigService)
 
-  const port = config.get<number>('env.port') || 4002
+  const port = config.get<number>('env.port') ?? 4002
   await app.listen({ port, host: '0.0.0.0' })
 }
 
-// eslint-disable-next-line @typescript-eslint/no-floating-promises
-bootstrap()
+bootstrap().catch((err) => {
+  console.error('Fatal error during bootstrap:', err)
+  process.exit(1)
+})

@@ -12,6 +12,10 @@ export class HttpLoggingInterceptor implements NestInterceptor {
     const req = http.getRequest<FastifyRequest>()
     const res = http.getResponse<FastifyReply>()
 
+    if (req.url === '/health' || req.url === '/metrics') {
+      return next.handle()
+    }
+
     const start = process.hrtime.bigint()
 
     return next.handle().pipe(

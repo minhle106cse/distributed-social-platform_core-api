@@ -1,10 +1,274 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../src/generated"
 }
 
 datasource db {
   provider = "postgresql"
 }
 
-// Cortex schema — written in Phase 1
-// See docs/04_database_schema.md for the full design
+// ─────────────────────────────────────────────
+// TENANT CONTEXT
+// ─────────────────────────────────────────────
+
+model Organization {
+  id                String    @id @default(uuid())
+  name              String
+  slug              String    @unique
+  seatLimit         Int       @default(10)     @map("seat_limit")
+  aiRateLimitPerMin Int       @default(20)     @map("ai_rate_limit_per_min")
+  createdAt         DateTime  @default(now())  @map("created_at")
+  deletedAt         DateTime?                  @map("deleted_at")
+
+  spaces      Space[]
+  memberships Membership[]
+
+  @@map("organizations")
+}
+
+model Membership {
+  id       String   @id @default(uuid())
+  orgId    String   @map("org_id")
+  userId   String   @map("user_id")   // loose ref to auth_db — no cross-db FK
+  role     OrgRole  @default(MEMBER)
+  joinedAt DateTime @default(now())   @map("joined_at")
+
+  org Organization @relation(fields: [orgId], references: [id])
+
+  @@unique([orgId, userId])
+  @@index([orgId])
+  @@map("memberships")
+}
+
+enum OrgRole {
+  OWNER
+  ADMIN
+  MEMBER
+  GUEST
+}
+
+model Space {
+  id         String          @id @default(uuid())
+  orgId      String          @map("org_id")
+  name       String
+  visibility SpaceVisibility @default(ORG)
+  deletedAt  DateTime?       @map("deleted_at")
+
+  org Organization @relation(fields: [orgId], references: [id])
+
+  @@index([orgId])
+  @@map("spaces")
+}
+
+enum SpaceVisibility {
+  ORG
+  PRIVATE
+}
+
+// ─────────────────────────────────────────────
+// KNOWLEDGE CONTEXT — Write Model + OCC
+// ─────────────────────────────────────────────
+
+model KnowledgeItem {
+  id              String          @id @default(uuid())
+  orgId           String          @map("org_id")
+  spaceId         String          @map("space_id")
+  type            KnowledgeType
+  title           String
+  body            String          @db.Text
+  parentId        String?         @map("parent_id")
+  status          KnowledgeStatus @default(DRAFT)
+  isVerified      Boolean         @default(false)   @map("is_verified")
+  version         Int             @default(1)        // OCC — check before update
+  contentHash     String?         @map("content_hash")
+  createdByUserId String          @map("created_by_user_id")
+  updatedByUserId String?         @map("updated_by_user_id")
+  createdAt       DateTime        @default(now())    @map("created_at")
+  updatedAt       DateTime        @updatedAt         @map("updated_at")
+  deletedAt       DateTime?       @map("deleted_at")
+
+  revisions Revision[]
+  votes     Vote[]
+  embedding Embedding?
+
+  @@index([orgId, spaceId])
+  @@index([orgId, status])
+  @@map("knowledge_items")
+}
+
+enum KnowledgeType {
+  DOCUMENT
+  QUESTION
+  ANSWER
+  RUNBOOK
+  ADR
+}
+
+enum KnowledgeStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+  STALE
+}
+
+model Revision {
+  id             String   @id @default(uuid())
+  itemId         String   @map("item_id")
+  version        Int
+  bodySnapshot   String   @db.Text @map("body_snapshot")
+  editedByUserId String   @map("edited_by_user_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  item KnowledgeItem @relation(fields: [itemId], references: [id])
+
+  @@unique([itemId, version])
+  @@map("revisions")
+}
+
+model Tag {
+  id    String @id @default(uuid())
+  orgId String @map("org_id")
+  name  String
+
+  @@unique([orgId, name])
+  @@map("tags")
+}
+
+// ─────────────────────────────────────────────
+// DISCOVERY CONTEXT — pgvector
+// ─────────────────────────────────────────────
+
+/// Embedding vector stored via pgvector extension.
+/// HNSW index created in a raw migration (see prisma/migrations/hnsw_index.sql).
+model Embedding {
+  id          String                      @id @default(uuid())
+  itemId      String                      @unique @map("item_id")
+  orgId       String                      @map("org_id")   // AI data boundary: always filter by org
+  embedding   Unsupported("vector(1024)")
+  contentHash String                      @map("content_hash")
+  createdAt   DateTime                    @default(now()) @map("created_at")
+
+  item KnowledgeItem @relation(fields: [itemId], references: [id])
+
+  @@index([orgId])
+  @@map("embeddings")
+}
+
+// ─────────────────────────────────────────────
+// ENGAGEMENT CONTEXT
+// ─────────────────────────────────────────────
+
+model Vote {
+  id     String @id @default(uuid())
+  itemId String @map("item_id")
+  userId String @map("user_id")
+  value  Int    // +1 upvote / -1 downvote
+
+  item KnowledgeItem @relation(fields: [itemId], references: [id])
+
+  @@unique([itemId, userId])
+  @@map("votes")
+}
+
+model Bookmark {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  itemId    String   @map("item_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, itemId])
+  @@map("bookmarks")
+}
+
+// ─────────────────────────────────────────────
+// CREDIT CONTEXT — Event Sourcing (append-only)
+// ─────────────────────────────────────────────
+
+/// Append-only event ledger. NEVER UPDATE or DELETE rows.
+/// eventType: CreditPurchased | CreditAwarded | CreditRefunded (+)
+///            CreditSpent | CreditStaked | CreditReserved (−)
+model EventStore {
+  id            String   @id @default(uuid())
+  aggregateType String   @map("aggregate_type")  // "CreditAccount" | "Reputation"
+  aggregateId   String   @map("aggregate_id")
+  eventType     String   @map("event_type")
+  version       Int                               // per-aggregate sequence for OCC
+  payload       Json
+  userId        String?  @map("user_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@unique([aggregateType, aggregateId, version])
+  @@index([aggregateType, aggregateId])
+  @@map("event_store")
+}
+
+// ─────────────────────────────────────────────
+// READ MODELS — CQRS Projections
+// ─────────────────────────────────────────────
+
+model CreditBalanceSummary {
+  orgId     String   @id @map("org_id")
+  balance   Int      @default(0)
+  reserved  Int      @default(0)   // locked by in-flight sagas
+  updatedAt DateTime @updatedAt    @map("updated_at")
+
+  @@map("credit_balance_summary")
+}
+
+model FeedTimeline {
+  id        String   @id @default(uuid())
+  orgId     String   @map("org_id")
+  userId    String   @map("user_id")
+  itemId    String   @map("item_id")
+  reason    String                   // "new_in_space" | "followed_author"
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([orgId, userId, createdAt])
+  @@map("feed_timeline")
+}
+
+model ReputationSummary {
+  userId    String   @id @map("user_id")
+  orgId     String   @map("org_id")
+  points    Int      @default(0)
+  badges    Json     @default("[]")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("reputation_summary")
+}
+
+// ─────────────────────────────────────────────
+// INFRASTRUCTURE — Outbox + Idempotency
+// ─────────────────────────────────────────────
+
+/// Transactional Outbox: written atomically with domain event in same DB transaction.
+model OutboxEvent {
+  id            String       @id @default(uuid())
+  aggregateType String       @map("aggregate_type")
+  aggregateId   String       @map("aggregate_id")
+  eventType     String       @map("event_type")
+  payload       Json
+  status        OutboxStatus @default(PENDING)
+  createdAt     DateTime     @default(now()) @map("created_at")
+  processedAt   DateTime?    @map("processed_at")
+
+  @@index([status, createdAt])
+  @@map("outbox_events")
+}
+
+enum OutboxStatus {
+  PENDING
+  PROCESSED
+  FAILED_DLQ
+}
+
+/// Idempotency key cache — prevents duplicate mutations from retried requests.
+model IdempotencyRecord {
+  key       String   @id               // X-Idempotency-Key header value
+  response  Json
+  createdAt DateTime @default(now()) @map("created_at")
+  expiresAt DateTime @map("expires_at")
+
+  @@index([expiresAt])
+  @@map("idempotency_records")
+}
