@@ -184,22 +184,42 @@ model Bookmark {
 // CREDIT CONTEXT — Event Sourcing (append-only)
 // ─────────────────────────────────────────────
 
-/// Append-only event ledger. NEVER UPDATE or DELETE rows.
+/// Append-only credit event ledger. NEVER UPDATE or DELETE rows.
 /// eventType: CreditPurchased | CreditAwarded | CreditRefunded (+)
 ///            CreditSpent | CreditStaked | CreditReserved (−)
-model EventStore {
-  id            String   @id @default(uuid())
-  aggregateType String   @map("aggregate_type")  // "CreditAccount" | "Reputation"
-  aggregateId   String   @map("aggregate_id")
-  eventType     String   @map("event_type")
-  version       Int                               // per-aggregate sequence for OCC
-  payload       Json
-  userId        String?  @map("user_id")
-  createdAt     DateTime @default(now()) @map("created_at")
+model CreditEvent {
+  id          String   @id @default(uuid())
+  aggregateId String   @map("aggregate_id")   // CreditAccount id (per org)
+  eventType   String   @map("event_type")
+  version     Int                              // per-aggregate sequence for OCC
+  payload     Json
+  userId      String?  @map("user_id")
+  createdAt   DateTime @default(now()) @map("created_at")
 
-  @@unique([aggregateType, aggregateId, version])
-  @@index([aggregateType, aggregateId])
-  @@map("event_store")
+  @@unique([aggregateId, version])
+  @@index([aggregateId])
+  @@map("credit_events")
+}
+
+// ─────────────────────────────────────────────
+// REPUTATION CONTEXT — Event Sourcing (append-only)
+// ─────────────────────────────────────────────
+
+/// Append-only reputation event ledger. NEVER UPDATE or DELETE rows.
+/// eventType: PointsEarned | PointsDeducted | BadgeAwarded | BadgeRevoked
+model ReputationEvent {
+  id          String   @id @default(uuid())
+  aggregateId String   @map("aggregate_id")   // userId (reputation is per user per org)
+  eventType   String   @map("event_type")
+  version     Int                              // per-aggregate sequence for OCC
+  payload     Json
+  orgId       String   @map("org_id")         // reputation is scoped per org
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@unique([aggregateId, version])
+  @@index([aggregateId])
+  @@index([orgId])
+  @@map("reputation_events")
 }
 
 // ─────────────────────────────────────────────
