@@ -1,5 +1,5 @@
 import {
-  Body, Controller, Get, HttpCode, Param, Patch, Post, Query, UseGuards, BadRequestException,
+  Body, Controller, ForbiddenException, Get, HttpCode, Param, Patch, Post, Query, UseGuards, BadRequestException,
 } from '@nestjs/common'
 import { randomUUID } from 'crypto'
 import { CommandBus, QueryBus } from '@distributed-social-platform/shared-kernel'
@@ -40,9 +40,11 @@ export class OrgController {
   @Get('orgs/:id/members')
   async getMembers(
     @Param('id') orgId: string,
+    @CurrentUser() user: JwtPayload,
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
   ) {
+    if (user.orgId !== orgId) throw new ForbiddenException('You do not have access to this organization')
     const take = Math.min(parseInt(limit ?? '50', 10) || 50, 100)
     const skip = parseInt(offset ?? '0', 10) || 0
     return this.queryBus.execute(new GetOrgMembersQuery(orgId, take, skip))
@@ -53,8 +55,10 @@ export class OrgController {
   async updateMemberRole(
     @Param('id') orgId: string,
     @Param('userId') targetUserId: string,
+    @CurrentUser() user: JwtPayload,
     @Body(new ZodValidationPipe(UpdateMemberRoleSchema)) body: UpdateMemberRoleDto,
   ) {
+    if (user.orgId !== orgId) throw new ForbiddenException('You do not have access to this organization')
     await this.commandBus.execute(
       new UpdateMemberRoleCommand(orgId, targetUserId, body.role),
     )

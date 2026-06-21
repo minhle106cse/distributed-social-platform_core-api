@@ -7,6 +7,7 @@ import { ORGANIZATION_REPOSITORY } from '@/modules/tenant/domain/repositories/or
 import type { IOrganizationRepository } from '@/modules/tenant/domain/repositories/organization.repository'
 import { MEMBERSHIP_REPOSITORY } from '@/modules/tenant/domain/repositories/membership.repository'
 import type { IMembershipRepository } from '@/modules/tenant/domain/repositories/membership.repository'
+import { OrgSlugAlreadyTakenError } from '@/common/errors/tenant.error'
 import { CreateOrgCommand } from './create-org.command'
 
 @Injectable()
@@ -19,7 +20,7 @@ export class CreateOrgHandler implements ICommandHandler<CreateOrgCommand> {
 
   async execute(command: CreateOrgCommand): Promise<void> {
     const existing = await this.orgRepo.findBySlug(command.slug)
-    if (existing) throw new Error(`Organization slug "${command.slug}" already taken`)
+    if (existing) throw new OrgSlugAlreadyTakenError(command.slug)
 
     const org = Organization.create({
       id: command.id,
