@@ -20,8 +20,10 @@ model Organization {
   createdAt         DateTime  @default(now())  @map("created_at")
   deletedAt         DateTime?                  @map("deleted_at")
 
-  spaces      Space[]
-  memberships Membership[]
+  spaces          Space[]
+  memberships     Membership[]
+  rolePermissions OrgRolePermission[]
+  invites         OrgInvite[]
 
   @@map("organizations")
 }
@@ -63,6 +65,41 @@ model Space {
 enum SpaceVisibility {
   ORG
   PRIVATE
+}
+
+/// Dynamic Org RBAC: role → permission mapping, scoped per org.
+/// Permission catalog is defined in code (OrgPermission const); this table only
+/// stores which role holds which permission within each org. Seeded with defaults
+/// on org creation, then editable by the OWNER at runtime (no deploy needed).
+/// OWNER has NO rows here — OrgGuard treats OWNER as holding every permission (implicit).
+model OrgRolePermission {
+  id         String   @id @default(uuid())
+  orgId      String   @map("org_id")
+  role       OrgRole
+  permission String // matches a value in the OrgPermission catalog (e.g. "knowledge:write")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  org Organization @relation(fields: [orgId], references: [id])
+
+  @@unique([orgId, role, permission])
+  @@index([orgId, role])
+  @@map("org_role_permissions")
+}
+
+model OrgInvite {
+  id        String    @id @default(uuid())
+  token     String    @unique
+  orgId     String    @map("org_id")
+  role      OrgRole   @default(MEMBER)
+  createdBy String    @map("created_by")  // loose ref to auth_db userId
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  usedBy    String?   @map("used_by")     // userId who accepted
+
+  org Organization @relation(fields: [orgId], references: [id])
+
+  @@index([orgId])
+  @@map("org_invites")
 }
 
 // ─────────────────────────────────────────────
@@ -255,6 +292,19 @@ model ReputationSummary {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("reputation_summary")
+}
+
+/// User Identity Projection — minimal copy of auth_db identity so core-api can
+/// render author name/avatar without calling auth-service per request.
+/// userId is a loose ref to auth_db (no cross-db FK). Synced via events (Phase 2).
+model UserProfile {
+  userId      String   @id @map("user_id")
+  displayName String   @map("display_name")
+  avatarUrl   String?  @map("avatar_url")
+  email       String
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("user_profiles")
 }
 
 // ─────────────────────────────────────────────

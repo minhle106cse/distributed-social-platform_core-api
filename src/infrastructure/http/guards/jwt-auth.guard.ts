@@ -3,13 +3,13 @@ import { ConfigService } from '@nestjs/config'
 import { FastifyRequest } from 'fastify'
 import * as jwt from 'jsonwebtoken'
 
+// Payload từ auth-service — system-level identity only.
+// orgId và orgRole KHÔNG có trong JWT; chúng được set bởi OrgGuard qua X-Org-Id header.
 export interface JwtPayload {
   sub: string
   email: string
-  orgId?: string
-  orgRole?: 'OWNER' | 'ADMIN' | 'MEMBER' | 'GUEST'
-  roles: string[]
-  permissions: string[]
+  roles: string[]       // system-level roles (e.g. 'superadmin')
+  permissions: string[] // system-level permissions (e.g. 'create:org')
 }
 
 @Injectable()
