@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common'
 import { PrismaService } from '@/infrastructure/database/prisma/prisma.service'
-import { OrgRole } from '../../domain/entities/membership.entity'
 import { IMembershipQueryRepository } from '../../application/queries/get-org-members/membership.query-repository'
 import { MemberDto } from '../../application/queries/get-org-members/get-org-members.dto'
 

@@ -7,7 +7,6 @@ import { TenantInterceptor } from './common/tenant/tenant.interceptor'
 import { APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core'
 import { LoggerModule } from 'nestjs-pino'
 import { ConfigModule } from './config/config.module'
-import { ConfigService } from '@nestjs/config'
 import { PrismaModule } from './infrastructure/database/prisma/prisma.module'
 import { createLogger } from '@distributed-social-platform/shared-kernel'
 
@@ -22,8 +21,7 @@ import { TenantModule } from './modules/tenant/tenant.module'
     PrismaModule,
     TenantModule,
     LoggerModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (_config: ConfigService) => ({
+      useFactory: () => ({
         pinoHttp: {
           logger: createLogger('core-api'),
           autoLogging: {

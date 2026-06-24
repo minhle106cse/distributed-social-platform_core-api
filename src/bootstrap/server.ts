@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto'
+import type { IncomingMessage } from 'http'
 import { NestFactory } from '@nestjs/core'
 import { FastifyAdapter, NestFastifyApplication } from '@nestjs/platform-fastify'
 import { AppModule } from '../app.module'
@@ -10,7 +11,7 @@ export async function buildServer() {
   const adapter = new FastifyAdapter({
     logger: false,
     bodyLimit: 10 * 1024 * 1024,
-    genReqId: (req) => {
+    genReqId: (req: IncomingMessage) => {
       const header = req.headers['x-request-id']
       return Array.isArray(header) ? header[0] : (header ?? randomUUID())
     },

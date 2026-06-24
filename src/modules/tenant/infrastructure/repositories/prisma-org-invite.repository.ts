@@ -4,7 +4,6 @@ import { PrismaService } from '@/infrastructure/database/prisma/prisma.service'
 import { getTx } from '@/common/database/transaction.context'
 import { OrgInvite } from '../../domain/entities/org-invite.entity'
 import type { IOrgInviteRepository } from '../../domain/repositories/org-invite.repository'
-import type { OrgRole } from '../../domain/entities/membership.entity'
 
 @Injectable()
 export class PrismaOrgInviteRepository implements IOrgInviteRepository {

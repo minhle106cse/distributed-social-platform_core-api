@@ -74,23 +74,30 @@ export class CqrsModule implements OnApplicationBootstrap {
     providers
       .filter((wrapper) => wrapper.instance && !wrapper.isNotMetatype)
       .forEach((wrapper) => {
-        const { instance, metatype } = wrapper
+        const instance = wrapper.instance as Record<string, unknown>
+        const metatype = wrapper.metatype as (new (...args: unknown[]) => unknown) | undefined
 
         if (metatype) {
           // Register Command Handlers
-          const command = Reflect.getMetadata(COMMAND_HANDLER_METADATA, metatype)
+          const command = Reflect.getMetadata(COMMAND_HANDLER_METADATA, metatype) as
+            | { name: string }
+            | undefined
           if (command) {
             this.commandBus.register(command.name, instance)
           }
 
           // Register Query Handlers
-          const query = Reflect.getMetadata(QUERY_HANDLER_METADATA, metatype)
+          const query = Reflect.getMetadata(QUERY_HANDLER_METADATA, metatype) as
+            | { name: string }
+            | undefined
           if (query) {
             this.queryBus.register(query.name, instance)
           }
 
           // Register Event Handlers
-          const event = Reflect.getMetadata(EVENT_HANDLER_METADATA, metatype)
+          const event = Reflect.getMetadata(EVENT_HANDLER_METADATA, metatype) as
+            | { name: string }
+            | undefined
           if (event) {
             this.eventBus.register(event.name, instance)
           }

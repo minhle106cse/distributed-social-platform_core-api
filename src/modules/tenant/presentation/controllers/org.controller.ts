@@ -74,7 +74,7 @@ export class OrgController {
     @CurrentOrg() org: OrgContext,
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
-  ) {
+  ): Promise<unknown> {
     const take = Math.min(parseInt(limit ?? '50', 10) || 50, 100)
     const skip = parseInt(offset ?? '0', 10) || 0
     return this.queryBus.execute(new GetOrgMembersQuery(org.orgId, take, skip))
@@ -131,7 +131,7 @@ export class OrgController {
   async acceptInvite(
     @CurrentUser() user: JwtPayload,
     @Body(new ZodValidationPipe(AcceptInviteSchema)) body: AcceptInviteDto,
-  ) {
+  ): Promise<unknown> {
     return this.commandBus.execute(new AcceptInviteCommand(body.token, user.sub, randomUUID()))
   }
 
@@ -140,7 +140,7 @@ export class OrgController {
   @Get('orgs/:id/role-permissions')
   @UseGuards(OrgGuard)
   @RequireOrgPermission(OrgPermission.ORG_MANAGE_ROLES)
-  async getRolePermissions(@CurrentOrg() org: OrgContext) {
+  async getRolePermissions(@CurrentOrg() org: OrgContext): Promise<unknown> {
     return this.queryBus.execute(new GetRolePermissionsQuery(org.orgId))
   }
 
