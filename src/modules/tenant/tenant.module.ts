@@ -19,7 +19,7 @@ import { PrismaOrgRolePermissionRepository } from './infrastructure/repositories
 import { PrismaMembershipQueryRepository } from './infrastructure/repositories/prisma-membership.query-repository'
 import { PrismaOrgInviteRepository } from './infrastructure/repositories/prisma-org-invite.repository'
 import { OrgController } from './presentation/controllers/org.controller'
-import { OrgGuard } from '@/common/tenant/org.guard'
+import { OrgGuard } from '@/infrastructure/http/guards/org.guard'
 import { ORG_INVITE_REPOSITORY } from './domain/repositories/org-invite.repository'
 
 @Module({

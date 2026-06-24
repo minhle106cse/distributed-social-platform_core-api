@@ -3,7 +3,7 @@ import { HealthController } from './infrastructure/http/controllers/health.contr
 import { HttpLoggingInterceptor } from './infrastructure/http/interceptors/http-logging.interceptor'
 import { ResponseInterceptor } from './infrastructure/http/interceptors/response.interceptor'
 import { GlobalExceptionFilter } from './infrastructure/http/filter/global-exception.filter'
-import { TenantInterceptor } from './common/tenant/tenant.interceptor'
+import { TenantInterceptor } from './infrastructure/http/interceptors/tenant.interceptor'
 import { APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core'
 import { LoggerModule } from 'nestjs-pino'
 import { ConfigModule } from './config/config.module'

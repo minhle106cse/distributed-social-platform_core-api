@@ -71,3 +71,12 @@ export class AlreadyMemberError extends ApplicationError {
     super('User is already a member of this organization')
   }
 }
+
+export class MembershipNotFoundError extends ApplicationError {
+  readonly statusCode = 404
+  readonly code = 'MEMBERSHIP_NOT_FOUND'
+
+  constructor() {
+    super('Membership not found')
+  }
+}

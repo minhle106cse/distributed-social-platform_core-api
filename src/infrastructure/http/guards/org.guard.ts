@@ -8,13 +8,14 @@ import {
 } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import type { FastifyRequest } from 'fastify'
-import type { JwtPayload } from '@/infrastructure/http/guards/jwt-auth.guard'
-import { PrismaService } from '@/infrastructure/database/prisma/prisma.service'
+import type { JwtPayload } from './jwt-auth.guard'
 import { ORG_PERMISSION_KEY } from '@/infrastructure/http/decorators/require-org-permission.decorator'
+import { MEMBERSHIP_REPOSITORY } from '@/modules/tenant/domain/repositories/membership.repository'
+import type { IMembershipRepository } from '@/modules/tenant/domain/repositories/membership.repository'
 import { ORG_ROLE_PERMISSION_REPOSITORY } from '@/modules/tenant/domain/repositories/org-role-permission.repository'
 import type { IOrgRolePermissionRepository } from '@/modules/tenant/domain/repositories/org-role-permission.repository'
-import { ALL_ORG_PERMISSIONS } from './org-permissions'
-import type { OrgPermissionValue, OrgRole } from './org-permissions'
+import { ALL_ORG_PERMISSIONS } from '@/common/tenant/org-permissions'
+import type { OrgPermissionValue, OrgRole } from '@/common/tenant/org-permissions'
 
 export interface OrgContext {
   orgId: string
@@ -25,7 +26,8 @@ export interface OrgContext {
 @Injectable()
 export class OrgGuard implements CanActivate {
   constructor(
-    private readonly prisma: PrismaService,
+    @Inject(MEMBERSHIP_REPOSITORY)
+    private readonly membershipRepo: IMembershipRepository,
     private readonly reflector: Reflector,
     @Inject(ORG_ROLE_PERMISSION_REPOSITORY)
     private readonly rolePermissionRepo: IOrgRolePermissionRepository,
@@ -42,10 +44,7 @@ export class OrgGuard implements CanActivate {
     const orgId = request.headers['x-org-id'] as string | undefined
     if (!orgId) throw new ForbiddenException('X-Org-Id header is required')
 
-    const membership = await this.prisma.membership.findFirst({
-      where: { orgId, userId },
-    })
-
+    const membership = await this.membershipRepo.findByOrgAndUser(orgId, userId)
     if (!membership) throw new ForbiddenException('You are not a member of this organization')
 
     const orgRole = membership.role

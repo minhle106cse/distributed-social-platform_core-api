@@ -1,8 +1,8 @@
 import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common'
 import { Observable } from 'rxjs'
 import type { FastifyRequest } from 'fastify'
-import type { OrgContext } from './org.guard'
-import { runWithTenant } from './tenant.context'
+import type { OrgContext } from '@/infrastructure/http/guards/org.guard'
+import { runWithTenant } from '@/common/tenant/tenant.context'
 
 @Injectable()
 export class TenantInterceptor implements NestInterceptor {

@@ -1,6 +1,6 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common'
 import type { FastifyRequest } from 'fastify'
-import type { OrgContext } from '@/common/tenant/org.guard'
+import type { OrgContext } from '@/infrastructure/http/guards/org.guard'
 
 export const CurrentOrg = createParamDecorator(
   (_data: unknown, ctx: ExecutionContext): OrgContext => {

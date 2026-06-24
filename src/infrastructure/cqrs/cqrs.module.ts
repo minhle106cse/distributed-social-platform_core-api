@@ -11,6 +11,9 @@ import {
   COMMAND_HANDLER_METADATA,
   QUERY_HANDLER_METADATA,
   EVENT_HANDLER_METADATA,
+  type ICommandHandler,
+  type IQueryHandler,
+  type IEventHandler,
 } from '@distributed-social-platform/shared-kernel'
 import {
   TRANSACTION_MANAGER,
@@ -74,7 +77,7 @@ export class CqrsModule implements OnApplicationBootstrap {
     providers
       .filter((wrapper) => wrapper.instance && !wrapper.isNotMetatype)
       .forEach((wrapper) => {
-        const instance = wrapper.instance as Record<string, unknown>
+        const instance = wrapper.instance as object
         const metatype = wrapper.metatype as (new (...args: unknown[]) => unknown) | undefined
 
         if (metatype) {
@@ -83,7 +86,7 @@ export class CqrsModule implements OnApplicationBootstrap {
             | { name: string }
             | undefined
           if (command) {
-            this.commandBus.register(command.name, instance)
+            this.commandBus.register(command.name, instance as ICommandHandler)
           }
 
           // Register Query Handlers
@@ -91,7 +94,7 @@ export class CqrsModule implements OnApplicationBootstrap {
             | { name: string }
             | undefined
           if (query) {
-            this.queryBus.register(query.name, instance)
+            this.queryBus.register(query.name, instance as IQueryHandler)
           }
 
           // Register Event Handlers
@@ -99,7 +102,7 @@ export class CqrsModule implements OnApplicationBootstrap {
             | { name: string }
             | undefined
           if (event) {
-            this.eventBus.register(event.name, instance)
+            this.eventBus.register(event.name, instance as IEventHandler)
           }
         }
       })
