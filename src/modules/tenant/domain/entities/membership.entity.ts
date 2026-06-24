@@ -33,11 +33,21 @@ export class Membership {
     return new Membership({ ...this.props, role })
   }
 
-  get id() { return this.props.id }
-  get orgId() { return this.props.orgId }
-  get userId() { return this.props.userId }
-  get role() { return this.props.role }
-  get joinedAt() { return this.props.joinedAt }
+  get id() {
+    return this.props.id
+  }
+  get orgId() {
+    return this.props.orgId
+  }
+  get userId() {
+    return this.props.userId
+  }
+  get role() {
+    return this.props.role
+  }
+  get joinedAt() {
+    return this.props.joinedAt
+  }
 
   toSnapshot(): MembershipProps {
     return { ...this.props }

@@ -11,7 +11,7 @@ export class PrismaOrganizationRepository implements IOrganizationRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   private get client(): Prisma.TransactionClient {
-    return (getTx<Prisma.TransactionClient>() ?? this.prisma) as Prisma.TransactionClient
+    return getTx<Prisma.TransactionClient>() ?? this.prisma
   }
 
   async findById(id: string): Promise<Organization | null> {

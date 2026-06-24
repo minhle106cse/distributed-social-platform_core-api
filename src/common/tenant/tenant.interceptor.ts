@@ -8,7 +8,7 @@ import { runWithTenant } from './tenant.context'
 export class TenantInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const request = context.switchToHttp().getRequest<FastifyRequest & { org?: OrgContext }>()
-    const orgId = request.org?.orgId  // set by OrgGuard after membership check
+    const orgId = request.org?.orgId // set by OrgGuard after membership check
     if (!orgId) return next.handle()
     return runWithTenant(orgId, () => next.handle())
   }

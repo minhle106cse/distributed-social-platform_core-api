@@ -21,7 +21,7 @@ export const OrgPermission = {
   ORG_MANAGE_ROLES: 'org:manage_roles', // meta: chỉnh mapping role→permission của org
 } as const
 
-export type OrgPermissionValue = typeof OrgPermission[keyof typeof OrgPermission]
+export type OrgPermissionValue = (typeof OrgPermission)[keyof typeof OrgPermission]
 
 // Toàn bộ permission tồn tại — dùng cho OWNER (implicit-all) và validate input.
 export const ALL_ORG_PERMISSIONS: OrgPermissionValue[] = Object.values(OrgPermission)
@@ -42,12 +42,6 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<Exclude<OrgRole, 'OWNER'>, OrgPerm
     OrgPermission.ORG_MANAGE_MEMBERS,
     OrgPermission.ORG_MANAGE_SPACES,
   ],
-  MEMBER: [
-    OrgPermission.KNOWLEDGE_READ,
-    OrgPermission.KNOWLEDGE_WRITE,
-    OrgPermission.AI_QUERY,
-  ],
-  GUEST: [
-    OrgPermission.KNOWLEDGE_READ,
-  ],
+  MEMBER: [OrgPermission.KNOWLEDGE_READ, OrgPermission.KNOWLEDGE_WRITE, OrgPermission.AI_QUERY],
+  GUEST: [OrgPermission.KNOWLEDGE_READ],
 }

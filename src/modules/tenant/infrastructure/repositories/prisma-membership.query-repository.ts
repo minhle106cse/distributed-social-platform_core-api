@@ -18,7 +18,7 @@ export class PrismaMembershipQueryRepository implements IMembershipQueryReposito
 
     return rows.map((r) => ({
       userId: r.userId,
-      role: r.role as OrgRole,
+      role: r.role,
       joinedAt: r.joinedAt,
     }))
   }

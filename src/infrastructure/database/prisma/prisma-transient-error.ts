@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client'
 
 /**
  * Infra-layer predicate that classifies Prisma errors as transient (retryable).
@@ -10,7 +10,7 @@ import { Prisma } from '@prisma/client';
  */
 export function isPrismaTransientError(error: unknown): boolean {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
-    return ['P2034', 'P2028'].includes(error.code);
+    return ['P2034', 'P2028'].includes(error.code)
   }
-  return false;
+  return false
 }

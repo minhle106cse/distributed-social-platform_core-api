@@ -4,7 +4,10 @@ import { CommandHandler } from '@/infrastructure/cqrs/decorators/command-handler
 import { ORG_ROLE_PERMISSION_REPOSITORY } from '@/modules/tenant/domain/repositories/org-role-permission.repository'
 import type { IOrgRolePermissionRepository } from '@/modules/tenant/domain/repositories/org-role-permission.repository'
 import { isValidOrgPermission } from '@/common/tenant/org-permissions'
-import { CannotModifyOwnerPermissionsError, InvalidOrgPermissionError } from '@/common/errors/tenant.error'
+import {
+  CannotModifyOwnerPermissionsError,
+  InvalidOrgPermissionError,
+} from '@/common/errors/tenant.error'
 import { UpdateRolePermissionsCommand } from './update-role-permissions.command'
 
 @Injectable()

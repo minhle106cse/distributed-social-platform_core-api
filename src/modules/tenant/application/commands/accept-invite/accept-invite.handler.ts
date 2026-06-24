@@ -16,7 +16,10 @@ import { AcceptInviteCommand } from './accept-invite.command'
 
 @Injectable()
 @CommandHandler(AcceptInviteCommand)
-export class AcceptInviteHandler implements ICommandHandler<AcceptInviteCommand, { orgId: string; role: string }> {
+export class AcceptInviteHandler implements ICommandHandler<
+  AcceptInviteCommand,
+  { orgId: string; role: string }
+> {
   constructor(
     @Inject(ORG_INVITE_REPOSITORY) private readonly inviteRepo: IOrgInviteRepository,
     @Inject(MEMBERSHIP_REPOSITORY) private readonly membershipRepo: IMembershipRepository,

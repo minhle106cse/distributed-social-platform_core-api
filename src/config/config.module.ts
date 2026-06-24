@@ -13,4 +13,4 @@ import { validate } from './env.validation'
     }),
   ],
 })
-export class ConfigModule { }
+export class ConfigModule {}

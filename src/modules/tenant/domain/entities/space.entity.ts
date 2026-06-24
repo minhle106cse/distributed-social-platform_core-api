@@ -34,12 +34,24 @@ export class Space {
     return new Space(props)
   }
 
-  get id() { return this.props.id }
-  get orgId() { return this.props.orgId }
-  get name() { return this.props.name }
-  get visibility() { return this.props.visibility }
-  get deletedAt() { return this.props.deletedAt }
-  get isDeleted() { return this.props.deletedAt !== null }
+  get id() {
+    return this.props.id
+  }
+  get orgId() {
+    return this.props.orgId
+  }
+  get name() {
+    return this.props.name
+  }
+  get visibility() {
+    return this.props.visibility
+  }
+  get deletedAt() {
+    return this.props.deletedAt
+  }
+  get isDeleted() {
+    return this.props.deletedAt !== null
+  }
 
   toSnapshot(): SpaceProps {
     return { ...this.props }

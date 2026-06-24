@@ -1,5 +1,13 @@
 import {
-  Body, Controller, Get, HttpCode, Param, Patch, Post, Query, UseGuards,
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
 } from '@nestjs/common'
 import { randomUUID, randomBytes } from 'crypto'
 import { CommandBus, QueryBus } from '@distributed-social-platform/shared-kernel'
@@ -21,11 +29,22 @@ import { AcceptInviteCommand } from '../../application/commands/accept-invite/ac
 import { GetOrgMembersQuery } from '../../application/queries/get-org-members/get-org-members.query'
 import { GetRolePermissionsQuery } from '../../application/queries/get-role-permissions/get-role-permissions.query'
 import {
-  CreateOrgSchema, CreateSpaceSchema, UpdateMemberRoleSchema,
-  ManageableOrgRoleSchema, UpdateRolePermissionsSchema,
-  CreateInviteSchema, AcceptInviteSchema,
+  CreateOrgSchema,
+  CreateSpaceSchema,
+  UpdateMemberRoleSchema,
+  ManageableOrgRoleSchema,
+  UpdateRolePermissionsSchema,
+  CreateInviteSchema,
+  AcceptInviteSchema,
 } from '../schemas/org.schema'
-import type { CreateOrgDto, CreateSpaceDto, UpdateMemberRoleDto, UpdateRolePermissionsDto, CreateInviteDto, AcceptInviteDto } from '../schemas/org.schema'
+import type {
+  CreateOrgDto,
+  CreateSpaceDto,
+  UpdateMemberRoleDto,
+  UpdateRolePermissionsDto,
+  CreateInviteDto,
+  AcceptInviteDto,
+} from '../schemas/org.schema'
 
 @Controller('api/v1')
 @UseGuards(JwtAuthGuard)
@@ -70,9 +89,7 @@ export class OrgController {
     @CurrentOrg() org: OrgContext,
     @Body(new ZodValidationPipe(UpdateMemberRoleSchema)) body: UpdateMemberRoleDto,
   ) {
-    await this.commandBus.execute(
-      new UpdateMemberRoleCommand(org.orgId, targetUserId, body.role),
-    )
+    await this.commandBus.execute(new UpdateMemberRoleCommand(org.orgId, targetUserId, body.role))
   }
 
   @Post('spaces')
@@ -115,9 +132,7 @@ export class OrgController {
     @CurrentUser() user: JwtPayload,
     @Body(new ZodValidationPipe(AcceptInviteSchema)) body: AcceptInviteDto,
   ) {
-    return this.commandBus.execute(
-      new AcceptInviteCommand(body.token, user.sub, randomUUID()),
-    )
+    return this.commandBus.execute(new AcceptInviteCommand(body.token, user.sub, randomUUID()))
   }
 
   // ── Org RBAC management (OWNER) ────────────────────────────────────────────

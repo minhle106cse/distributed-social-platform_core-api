@@ -1,4 +1,11 @@
-import { CanActivate, ExecutionContext, ForbiddenException, Injectable, UnauthorizedException, Inject } from '@nestjs/common'
+import {
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  Injectable,
+  UnauthorizedException,
+  Inject,
+} from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import type { FastifyRequest } from 'fastify'
 import type { JwtPayload } from '@/infrastructure/http/guards/jwt-auth.guard'
@@ -25,7 +32,9 @@ export class OrgGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest<FastifyRequest & { user?: JwtPayload; org?: OrgContext }>()
+    const request = context
+      .switchToHttp()
+      .getRequest<FastifyRequest & { user?: JwtPayload; org?: OrgContext }>()
 
     const userId = request.user?.sub
     if (!userId) throw new UnauthorizedException()
@@ -39,13 +48,16 @@ export class OrgGuard implements CanActivate {
 
     if (!membership) throw new ForbiddenException('You are not a member of this organization')
 
-    const orgRole = membership.role as OrgRole
+    const orgRole = membership.role
     const permissions = await this.resolvePermissions(orgId, orgRole)
 
     request.org = { orgId, orgRole, permissions }
 
     // Nếu route khai báo @RequireOrgPermission, kiểm tra theo action (không theo role name)
-    const requiredPermission = this.reflector.get<OrgPermissionValue>(ORG_PERMISSION_KEY, context.getHandler())
+    const requiredPermission = this.reflector.get<OrgPermissionValue>(
+      ORG_PERMISSION_KEY,
+      context.getHandler(),
+    )
     if (requiredPermission && !permissions.includes(requiredPermission)) {
       throw new ForbiddenException(`Missing permission: ${requiredPermission}`)
     }

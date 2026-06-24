@@ -13,7 +13,10 @@ export class UpdateMemberRoleHandler implements ICommandHandler<UpdateMemberRole
   ) {}
 
   async execute(command: UpdateMemberRoleCommand): Promise<void> {
-    const membership = await this.membershipRepo.findByOrgAndUser(command.orgId, command.targetUserId)
+    const membership = await this.membershipRepo.findByOrgAndUser(
+      command.orgId,
+      command.targetUserId,
+    )
     if (!membership) throw new NotFoundException('Membership not found')
 
     const updated = membership.changeRole(command.newRole)

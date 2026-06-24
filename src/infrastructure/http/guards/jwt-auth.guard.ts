@@ -8,7 +8,7 @@ import * as jwt from 'jsonwebtoken'
 export interface JwtPayload {
   sub: string
   email: string
-  roles: string[]       // system-level roles (e.g. 'superadmin')
+  roles: string[] // system-level roles (e.g. 'superadmin')
   permissions: string[] // system-level permissions (e.g. 'create:org')
 }
 
@@ -35,7 +35,8 @@ export class JwtAuthGuard implements CanActivate {
   }
 
   private extractToken(request: FastifyRequest): string | undefined {
-    const cookie = (request as FastifyRequest & { cookies?: Record<string, string> }).cookies?.accessToken
+    const cookie = (request as FastifyRequest & { cookies?: Record<string, string> }).cookies
+      ?.accessToken
     if (cookie) return cookie
 
     const [type, token] = request.headers.authorization?.split(' ') ?? []

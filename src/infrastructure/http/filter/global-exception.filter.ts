@@ -1,7 +1,11 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException } from '@nestjs/common'
 import { FastifyReply, FastifyRequest } from 'fastify'
 import type { ErrorDetails } from '@distributed-social-platform/shared-kernel'
-import { ApplicationError, buildErrorBody, httpStatusToCode } from '@distributed-social-platform/shared-kernel'
+import {
+  ApplicationError,
+  buildErrorBody,
+  httpStatusToCode,
+} from '@distributed-social-platform/shared-kernel'
 
 interface HttpExceptionResponse {
   message?: string | string[]

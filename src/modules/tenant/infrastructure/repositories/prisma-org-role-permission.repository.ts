@@ -14,7 +14,7 @@ export class PrismaOrgRolePermissionRepository implements IOrgRolePermissionRepo
   constructor(private readonly prisma: PrismaService) {}
 
   private get client(): Prisma.TransactionClient {
-    return (getTx<Prisma.TransactionClient>() ?? this.prisma) as Prisma.TransactionClient
+    return getTx<Prisma.TransactionClient>() ?? this.prisma
   }
 
   async seedDefaults(orgId: string): Promise<void> {
@@ -30,11 +30,11 @@ export class PrismaOrgRolePermissionRepository implements IOrgRolePermissionRepo
 
   async replaceForRole(orgId: string, role: OrgRole, permissions: string[]): Promise<void> {
     await this.client.orgRolePermission.deleteMany({
-      where: { orgId, role: role as PrismaOrgRole },
+      where: { orgId, role: role },
     })
     if (permissions.length > 0) {
       await this.client.orgRolePermission.createMany({
-        data: permissions.map((permission) => ({ orgId, role: role as PrismaOrgRole, permission })),
+        data: permissions.map((permission) => ({ orgId, role: role, permission })),
       })
     }
   }
@@ -44,12 +44,12 @@ export class PrismaOrgRolePermissionRepository implements IOrgRolePermissionRepo
       where: { orgId },
       select: { role: true, permission: true },
     })
-    return rows.map((r) => ({ role: r.role as OrgRole, permission: r.permission }))
+    return rows.map((r) => ({ role: r.role, permission: r.permission }))
   }
 
   async findByOrgAndRole(orgId: string, role: OrgRole): Promise<string[]> {
     const rows = await this.client.orgRolePermission.findMany({
-      where: { orgId, role: role as PrismaOrgRole },
+      where: { orgId, role: role },
       select: { permission: true },
     })
     return rows.map((r) => r.permission)

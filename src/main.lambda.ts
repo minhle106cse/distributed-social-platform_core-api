@@ -9,7 +9,7 @@ let proxy: LambdaHandler
 async function bootstrap(): Promise<LambdaHandler> {
   const app = await createApp()
   const fastifyInstance = app.getHttpAdapter().getInstance()
-  return awsLambdaFastify(fastifyInstance) as LambdaHandler
+  return awsLambdaFastify(fastifyInstance)
 }
 
 export const handler = async (event: APIGatewayProxyEvent, context: Context): Promise<unknown> => {

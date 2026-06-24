@@ -11,7 +11,7 @@ export class PrismaOrgInviteRepository implements IOrgInviteRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   private get client(): Prisma.TransactionClient {
-    return (getTx<Prisma.TransactionClient>() ?? this.prisma) as Prisma.TransactionClient
+    return getTx<Prisma.TransactionClient>() ?? this.prisma
   }
 
   async save(invite: OrgInvite): Promise<void> {
@@ -42,7 +42,7 @@ export class PrismaOrgInviteRepository implements IOrgInviteRepository {
       id: row.id,
       token: row.token,
       orgId: row.orgId,
-      role: row.role as OrgRole,
+      role: row.role,
       createdBy: row.createdBy,
       expiresAt: row.expiresAt,
       usedAt: row.usedAt,

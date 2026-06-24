@@ -18,7 +18,8 @@ export class CreateOrgHandler implements ICommandHandler<CreateOrgCommand> {
   constructor(
     @Inject(ORGANIZATION_REPOSITORY) private readonly orgRepo: IOrganizationRepository,
     @Inject(MEMBERSHIP_REPOSITORY) private readonly membershipRepo: IMembershipRepository,
-    @Inject(ORG_ROLE_PERMISSION_REPOSITORY) private readonly rolePermissionRepo: IOrgRolePermissionRepository,
+    @Inject(ORG_ROLE_PERMISSION_REPOSITORY)
+    private readonly rolePermissionRepo: IOrgRolePermissionRepository,
   ) {}
 
   async execute(command: CreateOrgCommand): Promise<void> {

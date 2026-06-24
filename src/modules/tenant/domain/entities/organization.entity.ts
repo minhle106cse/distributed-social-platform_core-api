@@ -37,14 +37,30 @@ export class Organization {
     return new Organization(props)
   }
 
-  get id() { return this.props.id }
-  get name() { return this.props.name }
-  get slug() { return this.props.slug }
-  get seatLimit() { return this.props.seatLimit }
-  get aiRateLimitPerMin() { return this.props.aiRateLimitPerMin }
-  get createdAt() { return this.props.createdAt }
-  get deletedAt() { return this.props.deletedAt }
-  get isDeleted() { return this.props.deletedAt !== null }
+  get id() {
+    return this.props.id
+  }
+  get name() {
+    return this.props.name
+  }
+  get slug() {
+    return this.props.slug
+  }
+  get seatLimit() {
+    return this.props.seatLimit
+  }
+  get aiRateLimitPerMin() {
+    return this.props.aiRateLimitPerMin
+  }
+  get createdAt() {
+    return this.props.createdAt
+  }
+  get deletedAt() {
+    return this.props.deletedAt
+  }
+  get isDeleted() {
+    return this.props.deletedAt !== null
+  }
 
   toSnapshot(): OrganizationProps {
     return { ...this.props }

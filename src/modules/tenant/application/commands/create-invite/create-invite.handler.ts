@@ -9,9 +9,7 @@ import { CreateInviteCommand } from './create-invite.command'
 @Injectable()
 @CommandHandler(CreateInviteCommand)
 export class CreateInviteHandler implements ICommandHandler<CreateInviteCommand, string> {
-  constructor(
-    @Inject(ORG_INVITE_REPOSITORY) private readonly inviteRepo: IOrgInviteRepository,
-  ) {}
+  constructor(@Inject(ORG_INVITE_REPOSITORY) private readonly inviteRepo: IOrgInviteRepository) {}
 
   async execute(command: CreateInviteCommand): Promise<string> {
     const invite = OrgInvite.create({

@@ -2,7 +2,11 @@ import { z } from 'zod'
 
 export const CreateOrgSchema = z.object({
   name: z.string().min(2).max(80),
-  slug: z.string().min(2).max(40).regex(/^[a-z0-9-]+$/, 'slug must be lowercase alphanumeric with hyphens'),
+  slug: z
+    .string()
+    .min(2)
+    .max(40)
+    .regex(/^[a-z0-9-]+$/, 'slug must be lowercase alphanumeric with hyphens'),
 })
 export type CreateOrgDto = z.infer<typeof CreateOrgSchema>
 

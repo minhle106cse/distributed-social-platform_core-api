@@ -18,7 +18,14 @@ export class OrgInvite {
     this.props = { ...props }
   }
 
-  static create(props: { id: string; token: string; orgId: string; role: OrgRole; createdBy: string; expiresAt: Date }): OrgInvite {
+  static create(props: {
+    id: string
+    token: string
+    orgId: string
+    role: OrgRole
+    createdBy: string
+    expiresAt: Date
+  }): OrgInvite {
     return new OrgInvite({ ...props, usedAt: null, usedBy: null })
   }
 
@@ -38,14 +45,30 @@ export class OrgInvite {
     return new OrgInvite({ ...this.props, usedAt: new Date(), usedBy: userId })
   }
 
-  get id() { return this.props.id }
-  get token() { return this.props.token }
-  get orgId() { return this.props.orgId }
-  get role() { return this.props.role }
-  get createdBy() { return this.props.createdBy }
-  get expiresAt() { return this.props.expiresAt }
-  get usedAt() { return this.props.usedAt }
-  get usedBy() { return this.props.usedBy }
+  get id() {
+    return this.props.id
+  }
+  get token() {
+    return this.props.token
+  }
+  get orgId() {
+    return this.props.orgId
+  }
+  get role() {
+    return this.props.role
+  }
+  get createdBy() {
+    return this.props.createdBy
+  }
+  get expiresAt() {
+    return this.props.expiresAt
+  }
+  get usedAt() {
+    return this.props.usedAt
+  }
+  get usedBy() {
+    return this.props.usedBy
+  }
 
   toSnapshot(): OrgInviteProps {
     return { ...this.props }

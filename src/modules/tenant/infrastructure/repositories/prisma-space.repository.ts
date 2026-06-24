@@ -12,7 +12,7 @@ export class PrismaSpaceRepository implements ISpaceRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   private get client(): Prisma.TransactionClient {
-    return (getTx<Prisma.TransactionClient>() ?? this.prisma) as Prisma.TransactionClient
+    return getTx<Prisma.TransactionClient>() ?? this.prisma
   }
 
   async findById(id: string): Promise<Space | null> {

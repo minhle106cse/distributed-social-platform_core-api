@@ -62,4 +62,4 @@ import { TenantModule } from './modules/tenant/tenant.module'
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}
