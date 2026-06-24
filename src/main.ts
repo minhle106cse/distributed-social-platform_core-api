@@ -1,5 +1,8 @@
+import { collectDefaultMetrics } from 'prom-client'
 import { ConfigService } from '@nestjs/config'
 import { createApp } from './app'
+
+collectDefaultMetrics()
 
 async function bootstrap() {
   const app = await createApp()

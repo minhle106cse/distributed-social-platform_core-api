@@ -1,7 +1,8 @@
-import { ICommand } from '@distributed-social-platform/shared-kernel'
+import { ICommand, CommandOptions } from '@distributed-social-platform/shared-kernel'
 
 export class CreateOrgCommand implements ICommand {
   readonly name = 'CreateOrgCommand'
+  readonly options: CommandOptions = { transactional: true, retryable: false }
 
   constructor(
     public readonly id: string,
@@ -9,6 +10,5 @@ export class CreateOrgCommand implements ICommand {
     public readonly slug: string,
     public readonly ownerUserId: string,
     public readonly ownerId: string,
-    public readonly options = { transactional: true, retryable: false },
   ) {}
 }
