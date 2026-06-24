@@ -3,7 +3,7 @@ import type { ICommandHandler } from '@distributed-social-platform/shared-kernel
 import { CommandHandler } from '@/infrastructure/cqrs/decorators/command-handler.decorator'
 import { ORG_ROLE_PERMISSION_REPOSITORY } from '@/modules/tenant/domain/repositories/org-role-permission.repository'
 import type { IOrgRolePermissionRepository } from '@/modules/tenant/domain/repositories/org-role-permission.repository'
-import { isValidOrgPermission } from '@/common/tenant/org-permissions'
+import { isValidOrgPermission } from '@/modules/tenant/domain/org-permissions'
 import {
   CannotModifyOwnerPermissionsError,
   InvalidOrgPermissionError,

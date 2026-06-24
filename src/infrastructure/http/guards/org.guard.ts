@@ -14,14 +14,10 @@ import { MEMBERSHIP_REPOSITORY } from '@/modules/tenant/domain/repositories/memb
 import type { IMembershipRepository } from '@/modules/tenant/domain/repositories/membership.repository'
 import { ORG_ROLE_PERMISSION_REPOSITORY } from '@/modules/tenant/domain/repositories/org-role-permission.repository'
 import type { IOrgRolePermissionRepository } from '@/modules/tenant/domain/repositories/org-role-permission.repository'
-import { ALL_ORG_PERMISSIONS } from '@/common/tenant/org-permissions'
-import type { OrgPermissionValue, OrgRole } from '@/common/tenant/org-permissions'
-
-export interface OrgContext {
-  orgId: string
-  orgRole: OrgRole
-  permissions: string[]
-}
+import { ALL_ORG_PERMISSIONS } from '@/modules/tenant/domain/org-permissions'
+import type { OrgPermissionValue } from '@/modules/tenant/domain/org-permissions'
+import type { OrgRole } from '@/modules/tenant/domain/entities/membership.entity'
+import type { OrgContext } from '@/infrastructure/http/types/org-context.interface'
 
 @Injectable()
 export class OrgGuard implements CanActivate {

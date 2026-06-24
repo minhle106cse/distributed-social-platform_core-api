@@ -1,6 +1,4 @@
-// OrgRole sống ở domain entity — import local + re-export để consumers không cần đổi import path.
-import type { OrgRole } from '@/modules/tenant/domain/entities/membership.entity'
-export type { OrgRole }
+import type { OrgRole } from './entities/membership.entity'
 
 // ── Permission Catalog (code = source of truth) ──────────────────────────────
 // Mỗi permission gắn với một feature/endpoint cụ thể. Thêm permission = thêm code.

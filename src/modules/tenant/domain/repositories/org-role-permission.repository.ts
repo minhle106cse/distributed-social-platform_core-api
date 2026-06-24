@@ -1,4 +1,4 @@
-import type { OrgRole } from '@/common/tenant/org-permissions'
+import type { OrgRole } from '../entities/membership.entity'
 
 export interface OrgRolePermissionEntry {
   role: OrgRole
