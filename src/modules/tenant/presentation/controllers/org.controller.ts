@@ -46,7 +46,7 @@ import type {
   AcceptInviteDto,
 } from '../schemas/org.schema'
 
-@Controller('api/v1')
+@Controller()
 @UseGuards(JwtAuthGuard)
 export class OrgController {
   constructor(
