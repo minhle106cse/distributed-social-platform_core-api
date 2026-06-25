@@ -4,6 +4,7 @@ import { CommandHandler } from '@/infrastructure/cqrs/decorators/command-handler
 import { ORG_ROLE_PERMISSION_REPOSITORY } from '@/modules/tenant/domain/repositories/org-role-permission.repository'
 import type { IOrgRolePermissionRepository } from '@/modules/tenant/domain/repositories/org-role-permission.repository'
 import { isValidOrgPermission } from '@/modules/tenant/domain/org-permissions'
+import { OrgRole } from '@/modules/tenant/domain/entities/membership.entity'
 import {
   CannotModifyOwnerPermissionsError,
   InvalidOrgPermissionError,
@@ -19,7 +20,7 @@ export class UpdateRolePermissionsHandler implements ICommandHandler<UpdateRoleP
 
   async execute(command: UpdateRolePermissionsCommand): Promise<void> {
     // Guardrail: OWNER luôn full quyền (implicit) → không cho chỉnh, chống lock-out.
-    if (command.role === 'OWNER') throw new CannotModifyOwnerPermissionsError()
+    if (command.role === OrgRole.OWNER) throw new CannotModifyOwnerPermissionsError()
 
     // Chỉ chấp nhận permission có trong catalog (tránh dữ liệu rác / quyền rỗng nghĩa).
     const unique = [...new Set(command.permissions)]

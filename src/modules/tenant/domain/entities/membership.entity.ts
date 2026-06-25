@@ -1,4 +1,23 @@
-export type OrgRole = 'OWNER' | 'ADMIN' | 'MEMBER' | 'GUEST'
+export const ORG_ROLES = ['OWNER', 'ADMIN', 'MEMBER', 'GUEST'] as const
+export type OrgRole = (typeof ORG_ROLES)[number]
+
+// Reference roles without magic strings, e.g. `OrgRole.OWNER`.
+// `satisfies Record<OrgRole, OrgRole>` keeps this in sync with ORG_ROLES:
+// add a role to the array and TS forces a matching key here.
+export const OrgRole = {
+  OWNER: 'OWNER',
+  ADMIN: 'ADMIN',
+  MEMBER: 'MEMBER',
+  GUEST: 'GUEST',
+} as const satisfies Record<OrgRole, OrgRole>
+
+// Anti-corruption boundary: parse a raw persistence string into the domain
+// union. Throws (→ 500) if the DB value drifts from the schema enum, instead of
+// silently producing a role that fails every permission check.
+export function toOrgRole(value: string): OrgRole {
+  if ((ORG_ROLES as readonly string[]).includes(value)) return value as OrgRole
+  throw new Error(`Unknown OrgRole from persistence: "${value}"`)
+}
 
 export interface MembershipProps {
   id: string

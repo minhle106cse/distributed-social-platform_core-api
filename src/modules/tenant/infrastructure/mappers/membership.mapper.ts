@@ -1,4 +1,4 @@
-import { Membership, OrgRole } from '../../domain/entities/membership.entity'
+import { Membership, toOrgRole } from '../../domain/entities/membership.entity'
 
 type PrismaMembership = {
   id: string
@@ -14,7 +14,7 @@ export class MembershipMapper {
       id: row.id,
       orgId: row.orgId,
       userId: row.userId,
-      role: row.role as OrgRole,
+      role: toOrgRole(row.role),
       joinedAt: row.joinedAt,
     })
   }

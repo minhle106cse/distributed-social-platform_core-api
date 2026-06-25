@@ -16,7 +16,7 @@ import { ORG_ROLE_PERMISSION_REPOSITORY } from '@/modules/tenant/domain/reposito
 import type { IOrgRolePermissionRepository } from '@/modules/tenant/domain/repositories/org-role-permission.repository'
 import { ALL_ORG_PERMISSIONS } from '@/modules/tenant/domain/org-permissions'
 import type { OrgPermissionValue } from '@/modules/tenant/domain/org-permissions'
-import type { OrgRole } from '@/modules/tenant/domain/entities/membership.entity'
+import { OrgRole } from '@/modules/tenant/domain/entities/membership.entity'
 import type { OrgContext } from '@/infrastructure/http/types/org-context.interface'
 
 @Injectable()
@@ -64,7 +64,7 @@ export class OrgGuard implements CanActivate {
   // Các role khác: đọc mapping động từ DB (org_role_permissions).
   // TODO(Phase 3): cache kết quả vào Redis (key org_perms:{orgId}:{role}, TTL 5') + invalidate khi update.
   private async resolvePermissions(orgId: string, role: OrgRole): Promise<string[]> {
-    if (role === 'OWNER') return [...ALL_ORG_PERMISSIONS]
+    if (role === OrgRole.OWNER) return [...ALL_ORG_PERMISSIONS]
     return this.rolePermissionRepo.findByOrgAndRole(orgId, role)
   }
 }
