@@ -2,7 +2,6 @@ import { NestFastifyApplication } from '@nestjs/platform-fastify'
 import helmet from '@fastify/helmet'
 import cors from '@fastify/cors'
 import compress from '@fastify/compress'
-import rateLimit from '@fastify/rate-limit'
 import { setupSwagger } from './swagger'
 
 export async function setupFastify(app: NestFastifyApplication) {
@@ -13,11 +12,8 @@ export async function setupFastify(app: NestFastifyApplication) {
     credentials: true,
   })
 
-  await fastify.register(rateLimit, {
-    max: 100,
-    timeWindow: '1 minute',
-  })
-
+  // Rate limiting is handled by @nestjs/throttler (per-route + global default),
+  // not @fastify/rate-limit — see app.module.ts and microservice_architecture.md.
   await fastify.register(helmet)
 
   await fastify.register(compress, {

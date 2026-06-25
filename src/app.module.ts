@@ -21,9 +21,9 @@ import { TenantModule } from './modules/tenant/tenant.module'
     CqrsModule,
     PrismaModule,
     TenantModule,
-    // Per-route rate limiting (NestJS-native). The default mirrors the
-    // SOP-mandated @fastify/rate-limit global (100 / 60s) so normal routes are
-    // not double-restricted; sensitive routes tighten it via @Throttle().
+    // Rate limiting — the single mechanism for this NestJS service (replaces
+    // @fastify/rate-limit, which can't do per-route in NestJS). Global default
+    // 100 / 60s; sensitive routes tighten it via @Throttle() in controllers.
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
     LoggerModule.forRootAsync({
       useFactory: () => ({
