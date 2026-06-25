@@ -1,10 +1,10 @@
-import type { OrgRole } from './membership.entity'
+import type { ManageableOrgRole } from './membership.entity'
 
 export interface OrgInviteProps {
   id: string
   token: string
   orgId: string
-  role: OrgRole
+  role: ManageableOrgRole
   createdBy: string
   expiresAt: Date
   usedAt: Date | null
@@ -18,11 +18,13 @@ export class OrgInvite {
     this.props = { ...props }
   }
 
+  // `ManageableOrgRole` excludes OWNER → you cannot mint an invite that makes
+  // someone OWNER (privilege escalation), enforced at compile time.
   static create(props: {
     id: string
     token: string
     orgId: string
-    role: OrgRole
+    role: ManageableOrgRole
     createdBy: string
     expiresAt: Date
   }): OrgInvite {

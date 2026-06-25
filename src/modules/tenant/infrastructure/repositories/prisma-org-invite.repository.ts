@@ -3,6 +3,7 @@ import type { Prisma } from '@/generated'
 import { PrismaService } from '@/infrastructure/database/prisma/prisma.service'
 import { getTx } from '@distributed-social-platform/shared-kernel'
 import { OrgInvite } from '../../domain/entities/org-invite.entity'
+import { toManageableOrgRole } from '../../domain/entities/membership.entity'
 import type { IOrgInviteRepository } from '../../domain/repositories/org-invite.repository'
 
 @Injectable()
@@ -41,7 +42,7 @@ export class PrismaOrgInviteRepository implements IOrgInviteRepository {
       id: row.id,
       token: row.token,
       orgId: row.orgId,
-      role: row.role,
+      role: toManageableOrgRole(row.role),
       createdBy: row.createdBy,
       expiresAt: row.expiresAt,
       usedAt: row.usedAt,

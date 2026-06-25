@@ -11,12 +11,26 @@ export const OrgRole = {
   GUEST: 'GUEST',
 } as const satisfies Record<OrgRole, OrgRole>
 
+// Roles that can be assigned to a regular member (everything except OWNER).
+// OWNER is implicit-all and granted only to the org founder — assigning it via
+// invite / member / role-change must be a compile error, not a runtime check.
+export type ManageableOrgRole = Exclude<OrgRole, 'OWNER'>
+
 // Anti-corruption boundary: parse a raw persistence string into the domain
 // union. Throws (→ 500) if the DB value drifts from the schema enum, instead of
 // silently producing a role that fails every permission check.
 export function toOrgRole(value: string): OrgRole {
   if ((ORG_ROLES as readonly string[]).includes(value)) return value as OrgRole
   throw new Error(`Unknown OrgRole from persistence: "${value}"`)
+}
+
+// Like toOrgRole but rejects OWNER — used where OWNER is structurally invalid
+// (e.g. an invite's role). An OWNER value here means corrupt data, not a member.
+export function toManageableOrgRole(value: string): ManageableOrgRole {
+  if (value !== OrgRole.OWNER && (ORG_ROLES as readonly string[]).includes(value)) {
+    return value as ManageableOrgRole
+  }
+  throw new Error(`Invalid ManageableOrgRole from persistence: "${value}"`)
 }
 
 export interface MembershipProps {
@@ -34,21 +48,29 @@ export class Membership {
     this.props = { ...props }
   }
 
-  static create(props: { id: string; orgId: string; userId: string; role?: OrgRole }): Membership {
-    return new Membership({
-      id: props.id,
-      orgId: props.orgId,
-      userId: props.userId,
-      role: props.role ?? 'MEMBER',
-      joinedAt: new Date(),
-    })
+  // The org founder. OWNER is granted ONLY here — never via invite/member paths.
+  static createOwner(props: { id: string; orgId: string; userId: string }): Membership {
+    return new Membership({ ...props, role: OrgRole.OWNER, joinedAt: new Date() })
+  }
+
+  // A regular member (invited / added). `ManageableOrgRole` makes passing OWNER
+  // a compile error → no privilege escalation through this path.
+  static createMember(props: {
+    id: string
+    orgId: string
+    userId: string
+    role: ManageableOrgRole
+  }): Membership {
+    return new Membership({ ...props, joinedAt: new Date() })
   }
 
   static rehydrate(props: MembershipProps): Membership {
     return new Membership(props)
   }
 
-  changeRole(role: OrgRole): Membership {
+  // Re-grade an existing member. Cannot promote to OWNER — ownership transfer is
+  // a separate, deliberate operation, not a role edit.
+  changeRole(role: ManageableOrgRole): Membership {
     return new Membership({ ...this.props, role })
   }
 

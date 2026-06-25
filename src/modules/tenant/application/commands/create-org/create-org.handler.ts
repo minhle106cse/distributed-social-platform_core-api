@@ -32,11 +32,10 @@ export class CreateOrgHandler implements ICommandHandler<CreateOrgCommand> {
       slug: command.slug,
     })
 
-    const ownerMembership = Membership.create({
+    const ownerMembership = Membership.createOwner({
       id: command.ownerId,
       orgId: command.id,
       userId: command.ownerUserId,
-      role: 'OWNER',
     })
 
     await this.orgRepo.save(org)

@@ -22,6 +22,10 @@ export class Organization {
     seatLimit?: number
     aiRateLimitPerMin?: number
   }): Organization {
+    // Self-protecting invariant: valid regardless of caller (HTTP/Zod, events,
+    // seeders). Zod guards the HTTP boundary; this guards the domain itself.
+    if (!props.name.trim()) throw new Error('Organization name is required')
+    if (!props.slug.trim()) throw new Error('Organization slug is required')
     return new Organization({
       id: props.id,
       name: props.name,

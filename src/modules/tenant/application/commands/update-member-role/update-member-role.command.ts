@@ -1,5 +1,5 @@
 import { ICommand, CommandOptions } from '@distributed-social-platform/shared-kernel'
-import { OrgRole } from '@/modules/tenant/domain/entities/membership.entity'
+import type { ManageableOrgRole } from '@/modules/tenant/domain/entities/membership.entity'
 
 export class UpdateMemberRoleCommand implements ICommand {
   readonly name = 'UpdateMemberRoleCommand'
@@ -8,6 +8,6 @@ export class UpdateMemberRoleCommand implements ICommand {
   constructor(
     public readonly orgId: string,
     public readonly targetUserId: string,
-    public readonly newRole: OrgRole,
+    public readonly newRole: ManageableOrgRole,
   ) {}
 }

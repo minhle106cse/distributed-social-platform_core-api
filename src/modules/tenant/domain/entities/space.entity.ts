@@ -21,6 +21,7 @@ export class Space {
     name: string
     visibility?: SpaceVisibility
   }): Space {
+    if (!props.name.trim()) throw new Error('Space name is required')
     return new Space({
       id: props.id,
       orgId: props.orgId,
