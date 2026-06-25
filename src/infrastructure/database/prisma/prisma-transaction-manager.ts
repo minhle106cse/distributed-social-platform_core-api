@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common'
-import type { ITransactionManager } from '@/common/database/transaction-manager.interface'
-import { runInTransaction } from '@/common/database/transaction.context'
+import {
+  runInTransaction,
+  type ITransactionManager,
+} from '@distributed-social-platform/shared-kernel'
 import { PrismaService } from './prisma.service'
 
 @Injectable()

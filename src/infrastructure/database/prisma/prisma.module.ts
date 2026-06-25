@@ -2,7 +2,7 @@ import { PrismaService } from './prisma.service'
 import { Global, Module } from '@nestjs/common'
 
 import { PrismaTransactionManager } from './prisma-transaction-manager'
-import { TRANSACTION_MANAGER } from '@/common/database/transaction-manager.interface'
+import { TRANSACTION_MANAGER } from '@distributed-social-platform/shared-kernel'
 
 @Global()
 @Module({

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import type { Prisma } from '@/generated'
 import { PrismaService } from '@/infrastructure/database/prisma/prisma.service'
-import { getTx } from '@/common/database/transaction.context'
+import { getTx } from '@distributed-social-platform/shared-kernel'
 import type { Membership } from '../../domain/entities/membership.entity'
 import type { IMembershipRepository } from '../../domain/repositories/membership.repository'
 import { MembershipMapper } from '../mappers/membership.mapper'

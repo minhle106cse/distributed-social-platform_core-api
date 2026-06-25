@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import type { Prisma } from '@/generated'
 import { PrismaService } from '@/infrastructure/database/prisma/prisma.service'
-import { getTx } from '@/common/database/transaction.context'
+import { getTx } from '@distributed-social-platform/shared-kernel'
 import { getTenantId } from '@/common/tenant/tenant.context'
 import type { Space } from '../../domain/entities/space.entity'
 import type { ISpaceRepository } from '../../domain/repositories/space.repository'

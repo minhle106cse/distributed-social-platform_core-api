@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import type { Prisma } from '@/generated'
 import { PrismaService } from '@/infrastructure/database/prisma/prisma.service'
-import { getTx } from '@/common/database/transaction.context'
+import { getTx } from '@distributed-social-platform/shared-kernel'
 import type { Organization } from '../../domain/entities/organization.entity'
 import type { IOrganizationRepository } from '../../domain/repositories/organization.repository'
 import { OrganizationMapper } from '../mappers/organization.mapper'

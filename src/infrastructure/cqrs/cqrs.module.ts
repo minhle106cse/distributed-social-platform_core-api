@@ -14,11 +14,9 @@ import {
   type ICommandHandler,
   type IQueryHandler,
   type IEventHandler,
-} from '@distributed-social-platform/shared-kernel'
-import {
   TRANSACTION_MANAGER,
   type ITransactionManager,
-} from '../../common/database/transaction-manager.interface'
+} from '@distributed-social-platform/shared-kernel'
 import { isPrismaTransientError } from '../database/prisma/prisma-transient-error'
 
 @Global()
