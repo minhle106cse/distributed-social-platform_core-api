@@ -1,10 +1,11 @@
-import { Membership, toOrgRole } from '../../domain/entities/membership.entity'
+import { Membership } from '../../domain/entities/membership.entity'
+import type { OrgRole } from '../../domain/entities/membership.entity'
 
 type PrismaMembership = {
   id: string
   orgId: string
   userId: string
-  role: string
+  role: OrgRole
   joinedAt: Date
 }
 
@@ -14,7 +15,8 @@ export class MembershipMapper {
       id: row.id,
       orgId: row.orgId,
       userId: row.userId,
-      role: toOrgRole(row.role),
+      // Trust persistence: the DB OrgRole enum guarantees a valid value.
+      role: row.role,
       joinedAt: row.joinedAt,
     })
   }

@@ -16,23 +16,6 @@ export const OrgRole = {
 // invite / member / role-change must be a compile error, not a runtime check.
 export type ManageableOrgRole = Exclude<OrgRole, 'OWNER'>
 
-// Anti-corruption boundary: parse a raw persistence string into the domain
-// union. Throws (→ 500) if the DB value drifts from the schema enum, instead of
-// silently producing a role that fails every permission check.
-export function toOrgRole(value: string): OrgRole {
-  if ((ORG_ROLES as readonly string[]).includes(value)) return value as OrgRole
-  throw new Error(`Unknown OrgRole from persistence: "${value}"`)
-}
-
-// Like toOrgRole but rejects OWNER — used where OWNER is structurally invalid
-// (e.g. an invite's role). An OWNER value here means corrupt data, not a member.
-export function toManageableOrgRole(value: string): ManageableOrgRole {
-  if (value !== OrgRole.OWNER && (ORG_ROLES as readonly string[]).includes(value)) {
-    return value as ManageableOrgRole
-  }
-  throw new Error(`Invalid ManageableOrgRole from persistence: "${value}"`)
-}
-
 export interface MembershipProps {
   id: string
   orgId: string

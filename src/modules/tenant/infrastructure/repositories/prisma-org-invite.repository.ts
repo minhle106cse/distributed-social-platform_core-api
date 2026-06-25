@@ -3,7 +3,7 @@ import type { Prisma } from '@/generated'
 import { PrismaService } from '@/infrastructure/database/prisma/prisma.service'
 import { getTx } from '@distributed-social-platform/shared-kernel'
 import { OrgInvite } from '../../domain/entities/org-invite.entity'
-import { toManageableOrgRole } from '../../domain/entities/membership.entity'
+import { OrgInviteMapper } from '../mappers/org-invite.mapper'
 import type { IOrgInviteRepository } from '../../domain/repositories/org-invite.repository'
 
 @Injectable()
@@ -15,38 +15,17 @@ export class PrismaOrgInviteRepository implements IOrgInviteRepository {
   }
 
   async save(invite: OrgInvite): Promise<void> {
-    const snap = invite.toSnapshot()
+    const data = OrgInviteMapper.toPersistence(invite)
     await this.client.orgInvite.upsert({
-      where: { id: snap.id },
-      create: {
-        id: snap.id,
-        token: snap.token,
-        orgId: snap.orgId,
-        role: snap.role,
-        createdBy: snap.createdBy,
-        expiresAt: snap.expiresAt,
-        usedAt: snap.usedAt,
-        usedBy: snap.usedBy,
-      },
-      update: {
-        usedAt: snap.usedAt,
-        usedBy: snap.usedBy,
-      },
+      where: { id: data.id },
+      create: data,
+      update: { usedAt: data.usedAt, usedBy: data.usedBy },
     })
   }
 
   async findByToken(token: string): Promise<OrgInvite | null> {
     const row = await this.client.orgInvite.findUnique({ where: { token } })
     if (!row) return null
-    return OrgInvite.rehydrate({
-      id: row.id,
-      token: row.token,
-      orgId: row.orgId,
-      role: toManageableOrgRole(row.role),
-      createdBy: row.createdBy,
-      expiresAt: row.expiresAt,
-      usedAt: row.usedAt,
-      usedBy: row.usedBy,
-    })
+    return OrgInviteMapper.toDomain(row)
   }
 }
