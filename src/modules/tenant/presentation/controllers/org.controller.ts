@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common'
+import { Throttle } from '@nestjs/throttler'
 import { randomUUID, randomBytes } from 'crypto'
 import { CommandBus, QueryBus } from '@distributed-social-platform/shared-kernel'
 import { JwtAuthGuard } from '@/infrastructure/http/guards/jwt-auth.guard'
@@ -56,6 +57,7 @@ export class OrgController {
 
   @Post('orgs')
   @HttpCode(201)
+  @Throttle({ default: { ttl: 60_000, limit: 10 } }) // org creation is heavy → tighten
   async createOrg(
     @Body(new ZodValidationPipe(CreateOrgSchema)) body: CreateOrgDto,
     @CurrentUser() user: JwtPayload,
@@ -96,6 +98,7 @@ export class OrgController {
   @HttpCode(201)
   @UseGuards(OrgGuard)
   @RequireOrgPermission(OrgPermission.ORG_MANAGE_SPACES)
+  @Throttle({ default: { ttl: 60_000, limit: 30 } })
   async createSpace(
     @Body(new ZodValidationPipe(CreateSpaceSchema)) body: CreateSpaceDto,
     @CurrentOrg() org: OrgContext,
@@ -113,6 +116,7 @@ export class OrgController {
   @HttpCode(201)
   @UseGuards(OrgGuard)
   @RequireOrgPermission(OrgPermission.ORG_MANAGE_MEMBERS)
+  @Throttle({ default: { ttl: 60_000, limit: 20 } })
   async createInvite(
     @CurrentUser() user: JwtPayload,
     @CurrentOrg() org: OrgContext,
@@ -128,6 +132,7 @@ export class OrgController {
 
   @Post('invites/accept')
   @HttpCode(200)
+  @Throttle({ default: { ttl: 60_000, limit: 10 } }) // token in body → throttle brute-force
   async acceptInvite(
     @CurrentUser() user: JwtPayload,
     @Body(new ZodValidationPipe(AcceptInviteSchema)) body: AcceptInviteDto,

@@ -1,9 +1,11 @@
 import { Controller, Get, Res } from '@nestjs/common'
+import { SkipThrottle } from '@nestjs/throttler'
 import type { FastifyReply } from 'fastify'
 import { register } from 'prom-client'
 import { PrismaService } from '@/infrastructure/database/prisma/prisma.service'
 
 @Controller()
+@SkipThrottle() // infra endpoints (scraped by monitoring) must not be rate-limited
 export class HealthController {
   constructor(private readonly prisma: PrismaService) {}
 

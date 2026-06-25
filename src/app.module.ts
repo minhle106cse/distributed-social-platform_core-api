@@ -4,7 +4,8 @@ import { HttpLoggingInterceptor } from './infrastructure/http/interceptors/http-
 import { ResponseInterceptor } from './infrastructure/http/interceptors/response.interceptor'
 import { GlobalExceptionFilter } from './infrastructure/http/filter/global-exception.filter'
 import { TenantInterceptor } from './infrastructure/http/interceptors/tenant.interceptor'
-import { APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core'
+import { APP_INTERCEPTOR, APP_FILTER, APP_GUARD } from '@nestjs/core'
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler'
 import { LoggerModule } from 'nestjs-pino'
 import { ConfigModule } from './config/config.module'
 import { PrismaModule } from './infrastructure/database/prisma/prisma.module'
@@ -20,6 +21,10 @@ import { TenantModule } from './modules/tenant/tenant.module'
     CqrsModule,
     PrismaModule,
     TenantModule,
+    // Per-route rate limiting (NestJS-native). The default mirrors the
+    // SOP-mandated @fastify/rate-limit global (100 / 60s) so normal routes are
+    // not double-restricted; sensitive routes tighten it via @Throttle().
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
     LoggerModule.forRootAsync({
       useFactory: () => ({
         pinoHttp: {
@@ -38,6 +43,7 @@ import { TenantModule } from './modules/tenant/tenant.module'
     }),
   ],
   providers: [
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
     HttpLoggingInterceptor,
     {
       provide: APP_INTERCEPTOR,
