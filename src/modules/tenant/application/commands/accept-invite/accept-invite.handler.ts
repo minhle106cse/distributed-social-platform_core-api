@@ -35,14 +35,14 @@ export class AcceptInviteHandler implements ICommandHandler<
     if (existing) throw new AlreadyMemberError()
 
     const membership = Membership.createMember({
-      id: command.membershipId,
       orgId: invite.orgId,
       userId: command.userId,
       role: invite.role,
     })
 
     await this.membershipRepo.save(membership)
-    await this.inviteRepo.save(invite.accept(command.userId))
+    invite.accept(command.userId)
+    await this.inviteRepo.save(invite)
 
     return { orgId: invite.orgId, role: invite.role }
   }

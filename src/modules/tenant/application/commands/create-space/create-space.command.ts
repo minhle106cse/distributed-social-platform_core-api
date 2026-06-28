@@ -6,7 +6,6 @@ export class CreateSpaceCommand implements ICommand {
   readonly options: CommandOptions = { transactional: false, retryable: false }
 
   constructor(
-    public readonly id: string,
     public readonly orgId: string,
     public readonly spaceName: string,
     public readonly visibility: SpaceVisibility,

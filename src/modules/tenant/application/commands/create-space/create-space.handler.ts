@@ -8,17 +8,18 @@ import { CreateSpaceCommand } from './create-space.command'
 
 @Injectable()
 @CommandHandler(CreateSpaceCommand)
-export class CreateSpaceHandler implements ICommandHandler<CreateSpaceCommand> {
+export class CreateSpaceHandler implements ICommandHandler<CreateSpaceCommand, string> {
   constructor(@Inject(SPACE_REPOSITORY) private readonly spaceRepo: ISpaceRepository) {}
 
-  async execute(command: CreateSpaceCommand): Promise<void> {
+  async execute(command: CreateSpaceCommand): Promise<string> {
     const space = Space.create({
-      id: command.id,
       orgId: command.orgId,
       name: command.spaceName,
       visibility: command.visibility,
     })
 
     await this.spaceRepo.save(space)
+
+    return space.id
   }
 }

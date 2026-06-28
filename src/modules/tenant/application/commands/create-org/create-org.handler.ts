@@ -14,7 +14,7 @@ import { CreateOrgCommand } from './create-org.command'
 
 @Injectable()
 @CommandHandler(CreateOrgCommand)
-export class CreateOrgHandler implements ICommandHandler<CreateOrgCommand> {
+export class CreateOrgHandler implements ICommandHandler<CreateOrgCommand, string> {
   constructor(
     @Inject(ORGANIZATION_REPOSITORY) private readonly orgRepo: IOrganizationRepository,
     @Inject(MEMBERSHIP_REPOSITORY) private readonly membershipRepo: IMembershipRepository,
@@ -22,19 +22,18 @@ export class CreateOrgHandler implements ICommandHandler<CreateOrgCommand> {
     private readonly rolePermissionRepo: IOrgRolePermissionRepository,
   ) {}
 
-  async execute(command: CreateOrgCommand): Promise<void> {
+  async execute(command: CreateOrgCommand): Promise<string> {
     const existing = await this.orgRepo.findBySlug(command.slug)
     if (existing) throw new OrgSlugAlreadyTakenError(command.slug)
 
+    // Entity tự sinh id (v7) — KHÔNG nhận id từ caller. org.id là nguồn duy nhất.
     const org = Organization.create({
-      id: command.id,
       name: command.orgName,
       slug: command.slug,
     })
 
     const ownerMembership = Membership.createOwner({
-      id: command.ownerId,
-      orgId: command.id,
+      orgId: org.id,
       userId: command.ownerUserId,
     })
 
@@ -42,6 +41,8 @@ export class CreateOrgHandler implements ICommandHandler<CreateOrgCommand> {
     await this.membershipRepo.save(ownerMembership)
     // Seed default role→permission mapping cho ADMIN/MEMBER/GUEST.
     // OWNER không cần seed — OrgGuard cấp toàn bộ quyền cho OWNER (implicit).
-    await this.rolePermissionRepo.seedDefaults(command.id)
+    await this.rolePermissionRepo.seedDefaults(org.id)
+
+    return org.id
   }
 }

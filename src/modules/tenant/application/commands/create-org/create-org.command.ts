@@ -5,10 +5,8 @@ export class CreateOrgCommand implements ICommand {
   readonly options: CommandOptions = { transactional: true, retryable: false }
 
   constructor(
-    public readonly id: string,
     public readonly orgName: string,
     public readonly slug: string,
     public readonly ownerUserId: string,
-    public readonly ownerId: string,
   ) {}
 }

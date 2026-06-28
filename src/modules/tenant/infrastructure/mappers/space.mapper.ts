@@ -20,13 +20,12 @@ export class SpaceMapper {
   }
 
   static toPersistence(space: Space) {
-    const snap = space.toSnapshot()
     return {
-      id: snap.id,
-      orgId: snap.orgId,
-      name: snap.name,
-      visibility: snap.visibility,
-      deletedAt: snap.deletedAt,
+      id: space.id,
+      orgId: space.orgId,
+      name: space.name,
+      visibility: space.visibility,
+      deletedAt: space.deletedAt,
     }
   }
 }

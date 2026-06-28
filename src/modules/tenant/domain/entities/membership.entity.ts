@@ -1,3 +1,5 @@
+import { v7 } from 'uuid'
+
 export const ORG_ROLES = ['OWNER', 'ADMIN', 'MEMBER', 'GUEST'] as const
 export type OrgRole = (typeof ORG_ROLES)[number]
 
@@ -25,55 +27,58 @@ export interface MembershipProps {
 }
 
 export class Membership {
-  private readonly props: MembershipProps
+  private _id: string
+  private _orgId: string
+  private _userId: string
+  private _role: OrgRole
+  private _joinedAt: Date
 
   private constructor(props: MembershipProps) {
-    this.props = { ...props }
+    this._id = props.id
+    this._orgId = props.orgId
+    this._userId = props.userId
+    this._role = props.role
+    this._joinedAt = new Date(props.joinedAt.getTime())
   }
 
   // The org founder. OWNER is granted ONLY here — never via invite/member paths.
-  static createOwner(props: { id: string; orgId: string; userId: string }): Membership {
-    return new Membership({ ...props, role: OrgRole.OWNER, joinedAt: new Date() })
+  static createOwner(props: { orgId: string; userId: string }): Membership {
+    return new Membership({ ...props, id: v7(), role: OrgRole.OWNER, joinedAt: new Date() })
   }
 
   // A regular member (invited / added). `ManageableOrgRole` makes passing OWNER
   // a compile error → no privilege escalation through this path.
   static createMember(props: {
-    id: string
     orgId: string
     userId: string
     role: ManageableOrgRole
   }): Membership {
-    return new Membership({ ...props, joinedAt: new Date() })
+    return new Membership({ ...props, id: v7(), joinedAt: new Date() })
   }
 
   static rehydrate(props: MembershipProps): Membership {
     return new Membership(props)
   }
 
-  // Re-grade an existing member. Cannot promote to OWNER — ownership transfer is
-  // a separate, deliberate operation, not a role edit.
-  changeRole(role: ManageableOrgRole): Membership {
-    return new Membership({ ...this.props, role })
+  // Re-grade an existing member in place. Cannot promote to OWNER — ownership
+  // transfer is a separate, deliberate operation, not a role edit.
+  changeRole(role: ManageableOrgRole) {
+    this._role = role
   }
 
   get id() {
-    return this.props.id
+    return this._id
   }
   get orgId() {
-    return this.props.orgId
+    return this._orgId
   }
   get userId() {
-    return this.props.userId
+    return this._userId
   }
   get role() {
-    return this.props.role
+    return this._role
   }
   get joinedAt() {
-    return this.props.joinedAt
-  }
-
-  toSnapshot(): MembershipProps {
-    return { ...this.props }
+    return new Date(this._joinedAt.getTime())
   }
 }

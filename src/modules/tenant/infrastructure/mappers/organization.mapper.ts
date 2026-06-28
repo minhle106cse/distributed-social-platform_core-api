@@ -24,15 +24,14 @@ export class OrganizationMapper {
   }
 
   static toPersistence(org: Organization) {
-    const snap = org.toSnapshot()
     return {
-      id: snap.id,
-      name: snap.name,
-      slug: snap.slug,
-      seatLimit: snap.seatLimit,
-      aiRateLimitPerMin: snap.aiRateLimitPerMin,
-      createdAt: snap.createdAt,
-      deletedAt: snap.deletedAt,
+      id: org.id,
+      name: org.name,
+      slug: org.slug,
+      seatLimit: org.seatLimit,
+      aiRateLimitPerMin: org.aiRateLimitPerMin,
+      createdAt: org.createdAt,
+      deletedAt: org.deletedAt,
     }
   }
 }

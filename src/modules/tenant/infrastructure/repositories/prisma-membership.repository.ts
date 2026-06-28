@@ -11,7 +11,7 @@ export class PrismaMembershipRepository implements IMembershipRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   private get client(): Prisma.TransactionClient {
-    return getTx<Prisma.TransactionClient>() ?? this.prisma
+    return getTx<Prisma.TransactionClient>() ?? this.prisma.client
   }
 
   async findByOrgAndUser(orgId: string, userId: string): Promise<Membership | null> {

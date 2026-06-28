@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common'
 import type { Prisma } from '@/generated'
 import { PrismaService } from '@/infrastructure/database/prisma/prisma.service'
 import { getTx } from '@distributed-social-platform/shared-kernel'
-import { getTenantId } from '@/common/tenant/tenant.context'
+import { requireTenantId } from '@/common/tenant/tenant.context'
 import type { Space } from '../../domain/entities/space.entity'
 import type { ISpaceRepository } from '../../domain/repositories/space.repository'
 import { SpaceMapper } from '../mappers/space.mapper'
@@ -12,12 +12,12 @@ export class PrismaSpaceRepository implements ISpaceRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   private get client(): Prisma.TransactionClient {
-    return getTx<Prisma.TransactionClient>() ?? this.prisma
+    return getTx<Prisma.TransactionClient>() ?? this.prisma.client
   }
 
   async findById(id: string): Promise<Space | null> {
     const row = await this.client.space.findFirst({
-      where: { id, orgId: getTenantId(), deletedAt: null },
+      where: { id, orgId: requireTenantId() },
     })
     return row ? SpaceMapper.toDomain(row) : null
   }

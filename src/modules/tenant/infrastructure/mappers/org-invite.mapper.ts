@@ -30,16 +30,15 @@ export class OrgInviteMapper {
   }
 
   static toPersistence(invite: OrgInvite) {
-    const snap = invite.toSnapshot()
     return {
-      id: snap.id,
-      token: snap.token,
-      orgId: snap.orgId,
-      role: snap.role,
-      createdBy: snap.createdBy,
-      expiresAt: snap.expiresAt,
-      usedAt: snap.usedAt,
-      usedBy: snap.usedBy,
+      id: invite.id,
+      token: invite.token,
+      orgId: invite.orgId,
+      role: invite.role,
+      createdBy: invite.createdBy,
+      expiresAt: invite.expiresAt,
+      usedAt: invite.usedAt,
+      usedBy: invite.usedBy,
     }
   }
 }

@@ -10,7 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common'
 import { Throttle } from '@nestjs/throttler'
-import { randomUUID, randomBytes } from 'crypto'
+import { randomBytes } from 'crypto'
 import { CommandBus, QueryBus } from '@distributed-social-platform/shared-kernel'
 import { JwtAuthGuard } from '@/infrastructure/http/guards/jwt-auth.guard'
 import type { JwtPayload } from '@/infrastructure/http/guards/jwt-auth.guard'
@@ -62,9 +62,8 @@ export class OrgController {
     @Body(new ZodValidationPipe(CreateOrgSchema)) body: CreateOrgDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    const orgId = randomUUID()
-    await this.commandBus.execute(
-      new CreateOrgCommand(orgId, body.name, body.slug, user.sub, randomUUID()),
+    const orgId = await this.commandBus.execute<CreateOrgCommand, string>(
+      new CreateOrgCommand(body.name, body.slug, user.sub),
     )
     return { id: orgId }
   }
@@ -103,9 +102,8 @@ export class OrgController {
     @Body(new ZodValidationPipe(CreateSpaceSchema)) body: CreateSpaceDto,
     @CurrentOrg() org: OrgContext,
   ) {
-    const spaceId = randomUUID()
-    await this.commandBus.execute(
-      new CreateSpaceCommand(spaceId, org.orgId, body.name, body.visibility),
+    const spaceId = await this.commandBus.execute<CreateSpaceCommand, string>(
+      new CreateSpaceCommand(org.orgId, body.name, body.visibility),
     )
     return { id: spaceId }
   }
@@ -125,7 +123,7 @@ export class OrgController {
     const token = randomBytes(32).toString('hex')
     const expiresAt = new Date(Date.now() + body.ttlHours * 60 * 60 * 1000)
     await this.commandBus.execute(
-      new CreateInviteCommand(randomUUID(), token, org.orgId, body.role, user.sub, expiresAt),
+      new CreateInviteCommand(token, org.orgId, body.role, user.sub, expiresAt),
     )
     return { token, expiresAt }
   }
@@ -137,7 +135,7 @@ export class OrgController {
     @CurrentUser() user: JwtPayload,
     @Body(new ZodValidationPipe(AcceptInviteSchema)) body: AcceptInviteDto,
   ): Promise<unknown> {
-    return this.commandBus.execute(new AcceptInviteCommand(body.token, user.sub, randomUUID()))
+    return this.commandBus.execute(new AcceptInviteCommand(body.token, user.sub))
   }
 
   // ── Org RBAC management (OWNER) ────────────────────────────────────────────

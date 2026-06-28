@@ -1,3 +1,5 @@
+import { v7 } from 'uuid'
+
 export interface OrganizationProps {
   id: string
   name: string
@@ -9,25 +11,32 @@ export interface OrganizationProps {
 }
 
 export class Organization {
-  private readonly props: OrganizationProps
+  private _id: string
+  private _name: string
+  private _slug: string
+  private _seatLimit: number
+  private _aiRateLimitPerMin: number
+  private _createdAt: Date
+  private _deletedAt: Date | null
 
   private constructor(props: OrganizationProps) {
-    this.props = { ...props }
+    this._id = props.id
+    this._name = props.name
+    this._slug = props.slug
+    this._seatLimit = props.seatLimit
+    this._aiRateLimitPerMin = props.aiRateLimitPerMin
+    this._createdAt = new Date(props.createdAt.getTime())
+    this._deletedAt = props.deletedAt ? new Date(props.deletedAt.getTime()) : null
   }
 
   static create(props: {
-    id: string
     name: string
     slug: string
     seatLimit?: number
     aiRateLimitPerMin?: number
   }): Organization {
-    // Self-protecting invariant: valid regardless of caller (HTTP/Zod, events,
-    // seeders). Zod guards the HTTP boundary; this guards the domain itself.
-    if (!props.name.trim()) throw new Error('Organization name is required')
-    if (!props.slug.trim()) throw new Error('Organization slug is required')
     return new Organization({
-      id: props.id,
+      id: v7(),
       name: props.name,
       slug: props.slug,
       seatLimit: props.seatLimit ?? 10,
@@ -42,31 +51,27 @@ export class Organization {
   }
 
   get id() {
-    return this.props.id
+    return this._id
   }
   get name() {
-    return this.props.name
+    return this._name
   }
   get slug() {
-    return this.props.slug
+    return this._slug
   }
   get seatLimit() {
-    return this.props.seatLimit
+    return this._seatLimit
   }
   get aiRateLimitPerMin() {
-    return this.props.aiRateLimitPerMin
+    return this._aiRateLimitPerMin
   }
   get createdAt() {
-    return this.props.createdAt
+    return new Date(this._createdAt.getTime())
   }
   get deletedAt() {
-    return this.props.deletedAt
+    return this._deletedAt ? new Date(this._deletedAt.getTime()) : null
   }
   get isDeleted() {
-    return this.props.deletedAt !== null
-  }
-
-  toSnapshot(): OrganizationProps {
-    return { ...this.props }
+    return this._deletedAt !== null
   }
 }

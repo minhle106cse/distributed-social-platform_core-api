@@ -20,7 +20,7 @@ export class UpdateMemberRoleHandler implements ICommandHandler<UpdateMemberRole
     )
     if (!membership) throw new MembershipNotFoundError()
 
-    const updated = membership.changeRole(command.newRole)
-    await this.membershipRepo.save(updated)
+    membership.changeRole(command.newRole)
+    await this.membershipRepo.save(membership)
   }
 }

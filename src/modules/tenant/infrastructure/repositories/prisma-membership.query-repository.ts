@@ -8,7 +8,7 @@ export class PrismaMembershipQueryRepository implements IMembershipQueryReposito
   constructor(private readonly prisma: PrismaService) {}
 
   async findMembersByOrgId(orgId: string, limit: number, offset: number): Promise<MemberDto[]> {
-    const rows = await this.prisma.membership.findMany({
+    const rows = await this.prisma.client.membership.findMany({
       where: { orgId },
       orderBy: { joinedAt: 'asc' },
       take: limit,

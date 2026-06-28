@@ -7,6 +7,5 @@ export class AcceptInviteCommand implements ICommand {
   constructor(
     public readonly token: string,
     public readonly userId: string,
-    public readonly membershipId: string,
   ) {}
 }

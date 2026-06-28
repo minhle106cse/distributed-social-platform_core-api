@@ -11,19 +11,19 @@ export class PrismaOrganizationRepository implements IOrganizationRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   private get client(): Prisma.TransactionClient {
-    return getTx<Prisma.TransactionClient>() ?? this.prisma
+    return getTx<Prisma.TransactionClient>() ?? this.prisma.client
   }
 
   async findById(id: string): Promise<Organization | null> {
     const row = await this.client.organization.findFirst({
-      where: { id, deletedAt: null },
+      where: { id },
     })
     return row ? OrganizationMapper.toDomain(row) : null
   }
 
   async findBySlug(slug: string): Promise<Organization | null> {
     const row = await this.client.organization.findFirst({
-      where: { slug, deletedAt: null },
+      where: { slug },
     })
     return row ? OrganizationMapper.toDomain(row) : null
   }

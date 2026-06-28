@@ -22,13 +22,12 @@ export class MembershipMapper {
   }
 
   static toPersistence(membership: Membership) {
-    const snap = membership.toSnapshot()
     return {
-      id: snap.id,
-      orgId: snap.orgId,
-      userId: snap.userId,
-      role: snap.role,
-      joinedAt: snap.joinedAt,
+      id: membership.id,
+      orgId: membership.orgId,
+      userId: membership.userId,
+      role: membership.role,
+      joinedAt: membership.joinedAt,
     }
   }
 }

@@ -6,7 +6,6 @@ export class CreateInviteCommand implements ICommand {
   readonly options: CommandOptions = { transactional: false, retryable: false }
 
   constructor(
-    public readonly inviteId: string,
     public readonly token: string,
     public readonly orgId: string,
     public readonly role: ManageableOrgRole,

@@ -1,3 +1,5 @@
+import { v7 } from 'uuid'
+
 export type SpaceVisibility = 'ORG' | 'PRIVATE'
 
 export interface SpaceProps {
@@ -9,21 +11,23 @@ export interface SpaceProps {
 }
 
 export class Space {
-  private readonly props: SpaceProps
+  private _id: string
+  private _orgId: string
+  private _name: string
+  private _visibility: SpaceVisibility
+  private _deletedAt: Date | null
 
   private constructor(props: SpaceProps) {
-    this.props = { ...props }
+    this._id = props.id
+    this._orgId = props.orgId
+    this._name = props.name
+    this._visibility = props.visibility
+    this._deletedAt = props.deletedAt ? new Date(props.deletedAt.getTime()) : null
   }
 
-  static create(props: {
-    id: string
-    orgId: string
-    name: string
-    visibility?: SpaceVisibility
-  }): Space {
-    if (!props.name.trim()) throw new Error('Space name is required')
+  static create(props: { orgId: string; name: string; visibility?: SpaceVisibility }): Space {
     return new Space({
-      id: props.id,
+      id: v7(),
       orgId: props.orgId,
       name: props.name,
       visibility: props.visibility ?? 'ORG',
@@ -36,25 +40,21 @@ export class Space {
   }
 
   get id() {
-    return this.props.id
+    return this._id
   }
   get orgId() {
-    return this.props.orgId
+    return this._orgId
   }
   get name() {
-    return this.props.name
+    return this._name
   }
   get visibility() {
-    return this.props.visibility
+    return this._visibility
   }
   get deletedAt() {
-    return this.props.deletedAt
+    return this._deletedAt ? new Date(this._deletedAt.getTime()) : null
   }
   get isDeleted() {
-    return this.props.deletedAt !== null
-  }
-
-  toSnapshot(): SpaceProps {
-    return { ...this.props }
+    return this._deletedAt !== null
   }
 }

@@ -13,7 +13,6 @@ export class CreateInviteHandler implements ICommandHandler<CreateInviteCommand,
 
   async execute(command: CreateInviteCommand): Promise<string> {
     const invite = OrgInvite.create({
-      id: command.inviteId,
       token: command.token,
       orgId: command.orgId,
       role: command.role,
