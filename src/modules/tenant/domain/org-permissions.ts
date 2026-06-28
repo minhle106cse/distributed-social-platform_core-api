@@ -9,6 +9,12 @@ export const OrgPermission = {
   KNOWLEDGE_WRITE: 'knowledge:write',
   KNOWLEDGE_VERIFY: 'knowledge:verify',
 
+  // Engagement
+  ENGAGEMENT_VOTE: 'engagement:vote',
+  ENGAGEMENT_BOOKMARK: 'engagement:bookmark',
+  ENGAGEMENT_FOLLOW: 'engagement:follow',
+  ENGAGEMENT_ACCEPT_ANSWER: 'engagement:accept_answer',
+
   // AI
   AI_QUERY: 'ai:query',
 
@@ -36,10 +42,22 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<Exclude<OrgRole, 'OWNER'>, OrgPerm
     OrgPermission.KNOWLEDGE_READ,
     OrgPermission.KNOWLEDGE_WRITE,
     OrgPermission.KNOWLEDGE_VERIFY,
+    OrgPermission.ENGAGEMENT_VOTE,
+    OrgPermission.ENGAGEMENT_BOOKMARK,
+    OrgPermission.ENGAGEMENT_FOLLOW,
+    OrgPermission.ENGAGEMENT_ACCEPT_ANSWER,
     OrgPermission.AI_QUERY,
     OrgPermission.ORG_MANAGE_MEMBERS,
     OrgPermission.ORG_MANAGE_SPACES,
   ],
-  MEMBER: [OrgPermission.KNOWLEDGE_READ, OrgPermission.KNOWLEDGE_WRITE, OrgPermission.AI_QUERY],
+  MEMBER: [
+    OrgPermission.KNOWLEDGE_READ,
+    OrgPermission.KNOWLEDGE_WRITE,
+    OrgPermission.ENGAGEMENT_VOTE,
+    OrgPermission.ENGAGEMENT_BOOKMARK,
+    OrgPermission.ENGAGEMENT_FOLLOW,
+    OrgPermission.ENGAGEMENT_ACCEPT_ANSWER,
+    OrgPermission.AI_QUERY,
+  ],
   GUEST: [OrgPermission.KNOWLEDGE_READ],
 }

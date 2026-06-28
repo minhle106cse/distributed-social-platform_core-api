@@ -13,6 +13,7 @@ import { createLogger } from '@distributed-social-platform/shared-kernel'
 
 import { CqrsModule } from './infrastructure/cqrs/cqrs.module'
 import { TenantModule } from './modules/tenant/tenant.module'
+import { EngagementModule } from './modules/engagement/engagement.module'
 
 @Module({
   controllers: [HealthController],
@@ -21,6 +22,7 @@ import { TenantModule } from './modules/tenant/tenant.module'
     CqrsModule,
     PrismaModule,
     TenantModule,
+    EngagementModule,
     // Rate limiting — the single mechanism for this NestJS service (replaces
     // @fastify/rate-limit, which can't do per-route in NestJS). Global default
     // 100 / 60s; sensitive routes tighten it via @Throttle() in controllers.

@@ -24,6 +24,7 @@ import { ORG_INVITE_REPOSITORY } from './domain/repositories/org-invite.reposito
 
 @Module({
   controllers: [OrgController],
+  exports: [OrgGuard, MEMBERSHIP_REPOSITORY, ORG_ROLE_PERMISSION_REPOSITORY, SPACE_REPOSITORY],
   providers: [
     OrgGuard,
     // Command handlers
