@@ -31,7 +31,7 @@ export class HealthController {
 
   private async checkDb(): Promise<boolean> {
     try {
-      await this.prisma.$queryRaw`SELECT 1`
+      await this.prisma.rawClient.$queryRaw`SELECT 1`
       return true
     } catch {
       return false

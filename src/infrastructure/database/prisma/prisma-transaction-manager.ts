@@ -10,6 +10,8 @@ export class PrismaTransactionManager implements ITransactionManager {
   constructor(private readonly prisma: PrismaService) {}
 
   run<R>(callback: () => Promise<R>): Promise<R> {
-    return this.prisma.$transaction((tx) => runInTransaction(tx, callback), { timeout: 10000 })
+    return this.prisma.client.$transaction((tx) => runInTransaction(tx, callback), {
+      timeout: 10000,
+    })
   }
 }
