@@ -29,11 +29,15 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
               modelsWithSoftDelete.includes(model) &&
               ['findUnique', 'findFirst', 'findMany', 'count'].includes(operation)
             ) {
-              const where = args.where ?? {}
+              // Cast: write ops (create/update/delete) don't have `where` in their
+              // arg type, but the $allOperations union includes them — cast is safe
+              // because we gate on read-only operations above.
+              const readArgs = args as { where?: Record<string, unknown> }
+              const where = readArgs.where ?? {}
               // An explicit `deletedAt` key in the query (even `undefined`) opts
               // out → enables restore flows / soft-deleted lookups when needed.
               if (!('deletedAt' in where)) {
-                args.where = { ...where, deletedAt: null }
+                readArgs.where = { ...where, deletedAt: null }
               }
             }
             return query(args)

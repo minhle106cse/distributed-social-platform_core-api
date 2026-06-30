@@ -2,7 +2,7 @@ import { ICommand, CommandOptions } from '@distributed-social-platform/shared-ke
 
 export class PublishKnowledgeCommand implements ICommand {
   readonly name = 'PublishKnowledgeCommand'
-  readonly options: CommandOptions = { transactional: false, retryable: false }
+  readonly options: CommandOptions = { transactional: true, retryable: false }
 
   constructor(
     public readonly id: string,

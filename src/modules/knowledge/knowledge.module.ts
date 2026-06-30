@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common'
 import { TenantModule } from '@/modules/tenant/tenant.module'
+import { OutboxModule } from '@/modules/outbox/outbox.module'
 import { KNOWLEDGE_ITEM_REPOSITORY } from './domain/repositories/knowledge-item.repository'
 import { REVISION_REPOSITORY } from './domain/repositories/revision.repository'
 import { KNOWLEDGE_QUERY_REPOSITORY } from './application/queries/knowledge.query-repository'
@@ -17,7 +18,7 @@ import { PrismaKnowledgeQueryRepository } from './infrastructure/repositories/pr
 import { KnowledgeController } from './presentation/controllers/knowledge.controller'
 
 @Module({
-  imports: [TenantModule],
+  imports: [TenantModule, OutboxModule],
   controllers: [KnowledgeController],
   exports: [KNOWLEDGE_ITEM_REPOSITORY, KNOWLEDGE_QUERY_REPOSITORY],
   providers: [

@@ -5,6 +5,7 @@ import {
   ApplicationError,
   buildErrorBody,
   httpStatusToCode,
+  LogContext,
 } from '@distributed-social-platform/shared-kernel'
 
 interface HttpExceptionResponse {
@@ -62,7 +63,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       message = exception.message
       details = exception.details
     } else {
-      req.log.error(exception)
+      req.log.error({ context: LogContext.EXCEPTION, err: exception }, 'Unhandled exception')
     }
 
     reply.status(status).send(buildErrorBody({ code, message, details, requestId: req.id }))

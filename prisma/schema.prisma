@@ -1,6 +1,9 @@
 generator client {
-  provider = "prisma-client-js"
-  output   = "../src/generated"
+  provider        = "prisma-client-js"
+  output          = "../src/generated"
+  // partialIndexes: cho phép `@@unique([...], where: {...})` — dùng cho
+  // unique chỉ-trên-bản-chưa-xóa (soft-delete reuse). Xem model Organization.
+  previewFeatures = ["partialIndexes"]
 }
 
 datasource db {
@@ -14,7 +17,7 @@ datasource db {
 model Organization {
   id                String    @id @default(uuid())
   name              String
-  slug              String    @unique
+  slug              String
   seatLimit         Int       @default(10)     @map("seat_limit")
   aiRateLimitPerMin Int       @default(20)     @map("ai_rate_limit_per_min")
   createdAt         DateTime  @default(now())  @map("created_at")
@@ -25,6 +28,10 @@ model Organization {
   rolePermissions OrgRolePermission[]
   invites         OrgInvite[]
 
+  // Slug unique CHỈ trong các org chưa xóa-mềm (partial index, Postgres
+  // `WHERE deleted_at IS NULL`). Org đã xóa nhả lại slug để tái dùng, và khớp
+  // với app-check (findBySlug chỉ nhìn bản live). Thay cho `@unique` full.
+  @@unique([slug], where: { deletedAt: null })
   @@map("organizations")
 }
 
@@ -107,26 +114,26 @@ model OrgInvite {
 // ─────────────────────────────────────────────
 
 model KnowledgeItem {
-  id              String          @id @default(uuid())
-  orgId           String          @map("org_id")
-  spaceId         String          @map("space_id")
-  type            KnowledgeType
-  title           String
-  body            String          @db.Text
-  parentId        String?         @map("parent_id")
-  status          KnowledgeStatus @default(DRAFT)
-  isVerified      Boolean         @default(false)   @map("is_verified")
-  version         Int             @default(1)        // OCC — check before update
-  contentHash     String?         @map("content_hash")
-  createdByUserId String          @map("created_by_user_id")
-  updatedByUserId String?         @map("updated_by_user_id")
-  createdAt       DateTime        @default(now())    @map("created_at")
-  updatedAt       DateTime        @updatedAt         @map("updated_at")
-  deletedAt       DateTime?       @map("deleted_at")
+  id               String          @id @default(uuid())
+  orgId            String          @map("org_id")
+  spaceId          String          @map("space_id")
+  type             KnowledgeType
+  title            String
+  body             String          @db.Text
+  parentId         String?         @map("parent_id")
+  acceptedAnswerId String?         @map("accepted_answer_id")
+  status           KnowledgeStatus @default(DRAFT)
+  isVerified       Boolean         @default(false)   @map("is_verified")
+  version          Int             @default(1)        // OCC — check before update
+  contentHash      String?         @map("content_hash")
+  createdByUserId  String          @map("created_by_user_id")
+  updatedByUserId  String?         @map("updated_by_user_id")
+  createdAt        DateTime        @default(now())    @map("created_at")
+  updatedAt        DateTime        @updatedAt         @map("updated_at")
+  deletedAt        DateTime?       @map("deleted_at")
 
   revisions Revision[]
   votes     Vote[]
-  embedding Embedding?
 
   @@index([orgId, spaceId])
   @@index([orgId, status])
@@ -172,49 +179,52 @@ model Tag {
 }
 
 // ─────────────────────────────────────────────
-// DISCOVERY CONTEXT — pgvector
-// ─────────────────────────────────────────────
-
-/// Embedding vector stored via pgvector extension.
-/// HNSW index created in a raw migration (see prisma/migrations/hnsw_index.sql).
-model Embedding {
-  id          String                      @id @default(uuid())
-  itemId      String                      @unique @map("item_id")
-  orgId       String                      @map("org_id")   // AI data boundary: always filter by org
-  embedding   Unsupported("vector(1024)")
-  contentHash String                      @map("content_hash")
-  createdAt   DateTime                    @default(now()) @map("created_at")
-
-  item KnowledgeItem @relation(fields: [itemId], references: [id])
-
-  @@index([orgId])
-  @@map("embeddings")
-}
-
-// ─────────────────────────────────────────────
 // ENGAGEMENT CONTEXT
 // ─────────────────────────────────────────────
 
 model Vote {
-  id     String @id @default(uuid())
-  itemId String @map("item_id")
-  userId String @map("user_id")
-  value  Int    // +1 upvote / -1 downvote
+  id        String   @id @default(uuid())
+  orgId     String   @map("org_id")
+  itemId    String   @map("item_id")
+  userId    String   @map("user_id")
+  value     Int      // +1 upvote / -1 downvote
+  createdAt DateTime @default(now()) @map("created_at")
 
   item KnowledgeItem @relation(fields: [itemId], references: [id])
 
   @@unique([itemId, userId])
+  @@index([orgId, itemId])
   @@map("votes")
 }
 
 model Bookmark {
   id        String   @id @default(uuid())
+  orgId     String   @map("org_id")
   userId    String   @map("user_id")
   itemId    String   @map("item_id")
   createdAt DateTime @default(now()) @map("created_at")
 
   @@unique([userId, itemId])
+  @@index([orgId, userId])
   @@map("bookmarks")
+}
+
+model Follow {
+  id         String           @id @default(uuid())
+  orgId      String           @map("org_id")
+  userId     String           @map("user_id")
+  targetType FollowTargetType @map("target_type")
+  targetId   String           @map("target_id")
+  createdAt  DateTime         @default(now()) @map("created_at")
+
+  @@unique([userId, targetType, targetId])
+  @@index([orgId, userId])
+  @@map("follows")
+}
+
+enum FollowTargetType {
+  DOCUMENT
+  SPACE
 }
 
 // ─────────────────────────────────────────────
@@ -260,54 +270,6 @@ model ReputationEvent {
 }
 
 // ─────────────────────────────────────────────
-// READ MODELS — CQRS Projections
-// ─────────────────────────────────────────────
-
-model CreditBalanceSummary {
-  orgId     String   @id @map("org_id")
-  balance   Int      @default(0)
-  reserved  Int      @default(0)   // locked by in-flight sagas
-  updatedAt DateTime @updatedAt    @map("updated_at")
-
-  @@map("credit_balance_summary")
-}
-
-model FeedTimeline {
-  id        String   @id @default(uuid())
-  orgId     String   @map("org_id")
-  userId    String   @map("user_id")
-  itemId    String   @map("item_id")
-  reason    String                   // "new_in_space" | "followed_author"
-  createdAt DateTime @default(now()) @map("created_at")
-
-  @@index([orgId, userId, createdAt])
-  @@map("feed_timeline")
-}
-
-model ReputationSummary {
-  userId    String   @id @map("user_id")
-  orgId     String   @map("org_id")
-  points    Int      @default(0)
-  badges    Json     @default("[]")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  @@map("reputation_summary")
-}
-
-/// User Identity Projection — minimal copy of auth_db identity so core-api can
-/// render author name/avatar without calling auth-service per request.
-/// userId is a loose ref to auth_db (no cross-db FK). Synced via events (Phase 2).
-model UserProfile {
-  userId      String   @id @map("user_id")
-  displayName String   @map("display_name")
-  avatarUrl   String?  @map("avatar_url")
-  email       String
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  @@map("user_profiles")
-}
-
-// ─────────────────────────────────────────────
 // INFRASTRUCTURE — Outbox + Idempotency
 // ─────────────────────────────────────────────
 
@@ -319,6 +281,8 @@ model OutboxEvent {
   eventType     String       @map("event_type")
   payload       Json
   status        OutboxStatus @default(PENDING)
+  attempts      Int          @default(0)
+  lastError     String?      @map("last_error")
   createdAt     DateTime     @default(now()) @map("created_at")
   processedAt   DateTime?    @map("processed_at")
 

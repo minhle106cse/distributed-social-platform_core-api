@@ -29,11 +29,13 @@ import { isPrismaTransientError } from '../database/prisma/prisma-transient-erro
     },
     {
       provide: QueryBus,
-      useValue: new QueryBus(),
+      useFactory: (logger: PinoLogger) => new QueryBus(logger),
+      inject: [PinoLogger],
     },
     {
       provide: EventBus,
-      useValue: new EventBus(),
+      useFactory: (logger: PinoLogger) => new EventBus(logger),
+      inject: [PinoLogger],
     },
     {
       provide: LoggingMiddleware,
