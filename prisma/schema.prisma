@@ -285,6 +285,9 @@ model OutboxEvent {
   lastError     String?      @map("last_error")
   createdAt     DateTime     @default(now()) @map("created_at")
   processedAt   DateTime?    @map("processed_at")
+  // Set when a poller claims the row (PENDING → INFLIGHT). Lets a reaper reset
+  // rows orphaned by a publisher crash between claim and publish.
+  claimedAt     DateTime?    @map("claimed_at")
 
   @@index([status, createdAt])
   @@map("outbox_events")
@@ -292,6 +295,7 @@ model OutboxEvent {
 
 enum OutboxStatus {
   PENDING
+  INFLIGHT
   PROCESSED
   FAILED_DLQ
 }

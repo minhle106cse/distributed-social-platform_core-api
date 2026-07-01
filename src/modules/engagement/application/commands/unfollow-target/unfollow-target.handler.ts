@@ -2,6 +2,7 @@ import { Injectable, Inject } from '@nestjs/common'
 import type { ICommandHandler } from '@distributed-social-platform/shared-kernel'
 import { FollowRemovedEvent } from '@distributed-social-platform/shared-kernel'
 import { CommandHandler } from '@/infrastructure/cqrs/decorators/command-handler.decorator'
+import { Follow } from '@/modules/engagement/domain/entities/follow.entity'
 import { FOLLOW_REPOSITORY } from '@/modules/engagement/domain/repositories/follow.repository'
 import type { IFollowRepository } from '@/modules/engagement/domain/repositories/follow.repository'
 import { OUTBOX_REPOSITORY } from '@/modules/outbox/domain/repositories/outbox.repository'
@@ -24,7 +25,9 @@ export class UnfollowTargetHandler implements ICommandHandler<UnfollowTargetComm
 
     await this.outboxRepo.append(
       FollowRemovedEvent.create({
-        aggregateId: command.targetId,
+        // Same partition key as FollowCreated (relationship identity) so unfollow
+        // never reorders ahead of its follow on the consumer. See Follow.streamKey.
+        aggregateId: Follow.streamKey(command.userId, command.targetType, command.targetId),
         orgId,
         payload: {
           orgId,

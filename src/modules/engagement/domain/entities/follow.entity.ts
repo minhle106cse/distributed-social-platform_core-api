@@ -48,6 +48,19 @@ export class Follow {
     return new Follow(props)
   }
 
+  /**
+   * Stable identity of a follow *relationship* (user↔target), used as the Kafka
+   * partition key for BOTH FollowCreated and FollowRemoved. It must NOT be the
+   * random row id: create keys by row id and remove has no row id, so keying by
+   * row id would scatter the two lifecycle events across partitions and let an
+   * unfollow be processed before its follow (ghost-follower bug). Keying both by
+   * this composite guarantees per-relationship ordering — exactly the projection
+   * PK [spaceId, userId] semantics on the consumer side.
+   */
+  static streamKey(userId: string, targetType: FollowTargetType, targetId: string): string {
+    return `${userId}:${targetType}:${targetId}`
+  }
+
   get id(): string {
     return this._id
   }

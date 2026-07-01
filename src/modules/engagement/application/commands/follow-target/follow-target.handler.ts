@@ -46,7 +46,9 @@ export class FollowTargetHandler implements ICommandHandler<FollowTargetCommand,
 
     await this.outboxRepo.append(
       FollowCreatedEvent.create({
-        aggregateId: follow.id,
+        // Partition key = follow relationship identity (NOT follow.id) so this
+        // event stays ordered with its FollowRemoved counterpart. See Follow.streamKey.
+        aggregateId: Follow.streamKey(command.userId, command.targetType, command.targetId),
         orgId,
         payload: {
           orgId,

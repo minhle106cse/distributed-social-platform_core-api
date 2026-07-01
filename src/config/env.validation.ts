@@ -10,6 +10,7 @@ export const envValidationSchema = z.object({
   KAFKA_CLIENT_ID: z.string().default('core-api'),
   OUTBOX_MAX_ATTEMPTS: z.coerce.number().int().min(1).default(5),
   OUTBOX_POLL_BATCH_SIZE: z.coerce.number().int().min(1).max(500).default(50),
+  OUTBOX_CLAIM_TIMEOUT_MS: z.coerce.number().int().min(1000).default(60000),
 })
 
 export function validate(config: Record<string, unknown>) {
