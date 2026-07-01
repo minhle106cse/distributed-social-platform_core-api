@@ -3,7 +3,7 @@ import type { FollowTargetType } from '@/modules/engagement/domain/entities/foll
 
 export class FollowTargetCommand implements ICommand {
   readonly name = 'FollowTargetCommand'
-  readonly options: CommandOptions = { transactional: false, retryable: false }
+  readonly options: CommandOptions = { transactional: true, retryable: false }
 
   constructor(
     readonly userId: string,

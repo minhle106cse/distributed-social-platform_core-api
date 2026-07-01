@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common'
 import { TenantModule } from '@/modules/tenant/tenant.module'
 import { KnowledgeModule } from '@/modules/knowledge/knowledge.module'
+import { OutboxModule } from '@/modules/outbox/outbox.module'
 import { VOTE_REPOSITORY } from './domain/repositories/vote.repository'
 import { BOOKMARK_REPOSITORY } from './domain/repositories/bookmark.repository'
 import { FOLLOW_REPOSITORY } from './domain/repositories/follow.repository'
@@ -23,7 +24,7 @@ import { PrismaEngagementQueryRepository } from './infrastructure/repositories/p
 import { EngagementController } from './presentation/controllers/engagement.controller'
 
 @Module({
-  imports: [TenantModule, KnowledgeModule],
+  imports: [TenantModule, KnowledgeModule, OutboxModule],
   controllers: [EngagementController],
   providers: [
     // Command handlers
