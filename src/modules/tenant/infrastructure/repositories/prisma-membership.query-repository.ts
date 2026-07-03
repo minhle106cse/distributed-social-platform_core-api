@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common'
 import { PrismaService } from '@/infrastructure/database/prisma/prisma.service'
 import { IMembershipQueryRepository } from '../../application/queries/get-org-members/membership.query-repository'
 import { MemberDto } from '../../application/queries/get-org-members/get-org-members.dto'
+import { MyOrgDto } from '../../application/queries/list-my-orgs/list-my-orgs.dto'
 
 @Injectable()
 export class PrismaMembershipQueryRepository implements IMembershipQueryRepository {
@@ -17,6 +18,22 @@ export class PrismaMembershipQueryRepository implements IMembershipQueryReposito
 
     return rows.map((r) => ({
       userId: r.userId,
+      role: r.role,
+      joinedAt: r.joinedAt,
+    }))
+  }
+
+  async findOrgsByUserId(userId: string): Promise<MyOrgDto[]> {
+    const rows = await this.prisma.client.membership.findMany({
+      where: { userId },
+      include: { org: { select: { name: true, slug: true } } },
+      orderBy: { joinedAt: 'asc' },
+    })
+
+    return rows.map((r) => ({
+      orgId: r.orgId,
+      name: r.org.name,
+      slug: r.org.slug,
       role: r.role,
       joinedAt: r.joinedAt,
     }))

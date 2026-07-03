@@ -11,6 +11,7 @@ import { UpdateRolePermissionsHandler } from './application/commands/update-role
 import { CreateInviteHandler } from './application/commands/create-invite/create-invite.handler'
 import { AcceptInviteHandler } from './application/commands/accept-invite/accept-invite.handler'
 import { GetOrgMembersHandler } from './application/queries/get-org-members/get-org-members.handler'
+import { ListMyOrgsHandler } from './application/queries/list-my-orgs/list-my-orgs.handler'
 import { GetRolePermissionsHandler } from './application/queries/get-role-permissions/get-role-permissions.handler'
 import { PrismaOrganizationRepository } from './infrastructure/repositories/prisma-organization.repository'
 import { PrismaMembershipRepository } from './infrastructure/repositories/prisma-membership.repository'
@@ -36,6 +37,7 @@ import { ORG_INVITE_REPOSITORY } from './domain/repositories/org-invite.reposito
     AcceptInviteHandler,
     // Query handlers
     GetOrgMembersHandler,
+    ListMyOrgsHandler,
     GetRolePermissionsHandler,
     // Write repositories
     { provide: ORGANIZATION_REPOSITORY, useClass: PrismaOrganizationRepository },

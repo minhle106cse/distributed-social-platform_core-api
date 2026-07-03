@@ -29,6 +29,7 @@ import { CreateInviteCommand } from '../../application/commands/create-invite/cr
 import { AcceptInviteCommand } from '../../application/commands/accept-invite/accept-invite.command'
 import { GetOrgMembersQuery } from '../../application/queries/get-org-members/get-org-members.query'
 import { GetRolePermissionsQuery } from '../../application/queries/get-role-permissions/get-role-permissions.query'
+import { ListMyOrgsQuery } from '../../application/queries/list-my-orgs/list-my-orgs.query'
 import {
   CreateOrgSchema,
   CreateSpaceSchema,
@@ -66,6 +67,14 @@ export class OrgController {
       new CreateOrgCommand(body.name, body.slug, user.sub),
     )
     return { id: orgId }
+  }
+
+  // Login bootstrap: which orgs am I in? JWT-only (no OrgGuard — the client
+  // calls this precisely to DISCOVER an orgId for the X-Org-Id header).
+  // Tenant-safe by construction: filtered by membership.userId = jwt.sub.
+  @Get('orgs')
+  async listMyOrgs(@CurrentUser() user: JwtPayload): Promise<unknown> {
+    return this.queryBus.execute(new ListMyOrgsQuery(user.sub))
   }
 
   @Get('orgs/:id/members')

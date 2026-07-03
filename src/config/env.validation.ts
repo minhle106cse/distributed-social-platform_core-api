@@ -7,7 +7,7 @@ export const envValidationSchema = z.object({
   CORE_DATABASE_URL: z.string().url(),
   JWT_PUBLIC_KEY: z.string().min(100),
   KAFKA_BROKERS: z.string().default('localhost:9092'),
-  KAFKA_CLIENT_ID: z.string().default('core-api'),
+  CORE_KAFKA_CLIENT_ID: z.string().default('core-api'),
   OUTBOX_MAX_ATTEMPTS: z.coerce.number().int().min(1).default(5),
   OUTBOX_POLL_BATCH_SIZE: z.coerce.number().int().min(1).max(500).default(50),
   OUTBOX_CLAIM_TIMEOUT_MS: z.coerce.number().int().min(1000).default(60000),
