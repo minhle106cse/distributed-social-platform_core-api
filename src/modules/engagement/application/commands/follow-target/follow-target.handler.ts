@@ -51,7 +51,6 @@ export class FollowTargetHandler implements ICommandHandler<FollowTargetCommand,
         aggregateId: Follow.streamKey(command.userId, command.targetType, command.targetId),
         orgId,
         payload: {
-          orgId,
           userId: command.userId,
           targetType: command.targetType,
           targetId: command.targetId,

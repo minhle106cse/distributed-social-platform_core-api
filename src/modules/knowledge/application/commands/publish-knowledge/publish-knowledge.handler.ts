@@ -37,7 +37,6 @@ export class PublishKnowledgeHandler implements ICommandHandler<PublishKnowledge
         orgId: item.orgId,
         payload: {
           itemId: item.id,
-          orgId: item.orgId,
           spaceId: item.spaceId,
           type: item.type,
           title: item.title,
