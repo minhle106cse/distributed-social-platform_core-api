@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { PrismaService } from '@/infrastructure/database/prisma/prisma.service'
-import { IMembershipQueryRepository } from '../../application/queries/get-org-members/membership.query-repository'
-import { MemberDto } from '../../application/queries/get-org-members/get-org-members.dto'
-import { MyOrgDto } from '../../application/queries/list-my-orgs/list-my-orgs.dto'
+import { IMembershipQueryRepository } from '../../application/queries/membership.query-repository'
+import { MemberDto, MyOrgDto } from '../../application/queries/membership.dto'
 
 @Injectable()
 export class PrismaMembershipQueryRepository implements IMembershipQueryRepository {

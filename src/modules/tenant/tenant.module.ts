@@ -3,7 +3,7 @@ import { ORGANIZATION_REPOSITORY } from './domain/repositories/organization.repo
 import { MEMBERSHIP_REPOSITORY } from './domain/repositories/membership.repository'
 import { SPACE_REPOSITORY } from './domain/repositories/space.repository'
 import { ORG_ROLE_PERMISSION_REPOSITORY } from './domain/repositories/org-role-permission.repository'
-import { MEMBERSHIP_QUERY_REPOSITORY } from './application/queries/get-org-members/membership.query-repository'
+import { MEMBERSHIP_QUERY_REPOSITORY } from './application/queries/membership.query-repository'
 import { CreateOrgHandler } from './application/commands/create-org/create-org.handler'
 import { CreateSpaceHandler } from './application/commands/create-space/create-space.handler'
 import { UpdateMemberRoleHandler } from './application/commands/update-member-role/update-member-role.handler'

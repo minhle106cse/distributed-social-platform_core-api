@@ -1,5 +1,4 @@
-import { MemberDto } from './get-org-members.dto'
-import { MyOrgDto } from '../list-my-orgs/list-my-orgs.dto'
+import { MemberDto, MyOrgDto } from './membership.dto'
 
 export interface IMembershipQueryRepository {
   findMembersByOrgId(orgId: string, limit: number, offset: number): Promise<MemberDto[]>
