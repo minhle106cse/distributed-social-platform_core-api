@@ -8,8 +8,8 @@ export class KafkaClientService {
 
   constructor(config: ConfigService) {
     this.client = new Kafka({
-      clientId: config.get<string>('env.kafkaClientId') ?? 'core-api',
-      brokers: config.get<string[]>('env.kafkaBrokers') ?? ['localhost:9092'],
+      clientId: config.getOrThrow<string>('env.kafkaClientId'),
+      brokers: config.getOrThrow<string[]>('env.kafkaBrokers'),
     })
   }
 }
