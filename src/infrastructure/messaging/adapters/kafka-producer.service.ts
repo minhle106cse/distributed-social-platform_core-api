@@ -7,7 +7,7 @@ import {
   type CloudEvent,
   type ITransportPublisher,
 } from '@distributed-social-platform/shared-kernel'
-import { KafkaClientService } from './kafka-client.service'
+import { KafkaClientService } from '@/infrastructure/kafka/kafka-client.service'
 
 @Injectable()
 export class KafkaProducerService implements ITransportPublisher, OnModuleInit, OnModuleDestroy {

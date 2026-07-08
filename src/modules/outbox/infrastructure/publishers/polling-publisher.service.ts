@@ -10,13 +10,16 @@ import {
 import { Prisma } from '@/generated'
 import { PrismaService } from '@/infrastructure/database/prisma/prisma.service'
 
+/**
+ * Polling Publisher (microservices.io) — the half of the Transactional Outbox
+ * that moves rows from PENDING to Kafka/queue. Stale-INFLIGHT recovery after a
+ * publisher crash is a separate concern, handled by OutboxReaperService.
+ */
 @Injectable()
 export class PollingPublisherService {
   private running = false
-  private reaping = false
   private readonly maxAttempts: number
   private readonly pollBatchSize: number
-  private readonly claimTimeoutMs: number
 
   constructor(
     private readonly prisma: PrismaService,
@@ -24,9 +27,8 @@ export class PollingPublisherService {
     @InjectPinoLogger(PollingPublisherService.name) private readonly logger: PinoLogger,
     config: ConfigService,
   ) {
-    this.maxAttempts = config.get<number>('env.outboxMaxAttempts') ?? 5
-    this.pollBatchSize = config.get<number>('env.outboxPollBatchSize') ?? 50
-    this.claimTimeoutMs = config.get<number>('env.outboxClaimTimeoutMs') ?? 60000
+    this.maxAttempts = config.getOrThrow<number>('env.outboxMaxAttempts')
+    this.pollBatchSize = config.getOrThrow<number>('env.outboxPollBatchSize')
   }
 
   @Interval(2000)
@@ -71,7 +73,7 @@ export class PollingPublisherService {
             subject: event.aggregateId,
             datacontenttype: 'application/json',
             data: event.payload,
-            orgid: (event.payload as Record<string, string>).orgId ?? '',
+            orgid: event.orgId,
             partitionkey: event.aggregateId,
           }
 
@@ -103,35 +105,6 @@ export class PollingPublisherService {
       }
     } finally {
       this.running = false
-    }
-  }
-
-  /**
-   * Reaper: recover rows a publisher claimed (INFLIGHT) but never resolved because
-   * the process crashed between claim and mark. Any INFLIGHT row older than the
-   * claim timeout is returned to PENDING for another poll. Safe under at-least-once:
-   * if the row was actually published before the crash, redelivery is deduped by
-   * the idempotent consumer.
-   */
-  @Interval(30000)
-  async reapStaleClaims(): Promise<void> {
-    if (this.reaping) return
-    this.reaping = true
-
-    try {
-      const claimTimeoutSec = Math.ceil(this.claimTimeoutMs / 1000)
-      const reaped = await this.prisma.client.$executeRaw(Prisma.sql`
-        UPDATE outbox_events
-        SET status = 'PENDING'::"OutboxStatus", claimed_at = NULL
-        WHERE status = 'INFLIGHT'::"OutboxStatus"
-          AND claimed_at < NOW() - make_interval(secs => ${claimTimeoutSec})
-      `)
-
-      if (reaped > 0) {
-        this.logger.warn({ reaped }, 'Reaped stale INFLIGHT outbox rows back to PENDING')
-      }
-    } finally {
-      this.reaping = false
     }
   }
 }
