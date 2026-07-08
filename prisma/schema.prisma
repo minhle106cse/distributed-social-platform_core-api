@@ -236,15 +236,17 @@ enum FollowTargetType {
 ///            CreditSpent | CreditStaked | CreditReserved (−)
 model CreditEvent {
   id          String   @id @default(uuid())
-  aggregateId String   @map("aggregate_id")   // CreditAccount id (per org)
+  aggregateId String   @map("aggregate_id")   // wallet id, per-user-per-org: "${orgId}:${userId}"
   eventType   String   @map("event_type")
   version     Int                              // per-aggregate sequence for OCC
   payload     Json
+  orgId       String   @map("org_id")          // denormalized from aggregateId for tenant-safe query/audit
   userId      String?  @map("user_id")
   createdAt   DateTime @default(now()) @map("created_at")
 
   @@unique([aggregateId, version])
   @@index([aggregateId])
+  @@index([orgId])
   @@map("credit_events")
 }
 
