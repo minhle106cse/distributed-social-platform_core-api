@@ -1,16 +1,5 @@
 import { z } from 'zod'
 
-export const CreateOrgSchema = z.object({
-  name: z.string().trim().min(2).max(80),
-  slug: z
-    .string()
-    .trim()
-    .min(2)
-    .max(40)
-    .regex(/^[a-z0-9-]+$/, 'slug must be lowercase alphanumeric with hyphens'),
-})
-export type CreateOrgDto = z.infer<typeof CreateOrgSchema>
-
 export const UpdateMemberRoleSchema = z.object({
   role: z.enum(['ADMIN', 'MEMBER', 'GUEST']),
 })

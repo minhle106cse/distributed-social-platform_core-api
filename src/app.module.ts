@@ -16,10 +16,12 @@ import { CqrsModule } from './infrastructure/cqrs/cqrs.module'
 import { KafkaModule } from './infrastructure/kafka/kafka.module'
 import { MessagingModule } from './infrastructure/messaging/messaging.module'
 import { TenantModule } from './modules/tenant/tenant.module'
+import { PlatformAdminModule } from './modules/platform-admin/platform-admin.module'
 import { KnowledgeModule } from './modules/knowledge/knowledge.module'
 import { EngagementModule } from './modules/engagement/engagement.module'
 import { OutboxModule } from './modules/outbox/outbox.module'
 import { FeedModule } from './modules/feed/feed.module'
+import { CreditModule } from './modules/credit/credit.module'
 
 @Module({
   controllers: [HealthController],
@@ -31,9 +33,11 @@ import { FeedModule } from './modules/feed/feed.module'
     MessagingModule,
     OutboxModule,
     TenantModule,
+    PlatformAdminModule,
     KnowledgeModule,
     EngagementModule,
     FeedModule,
+    CreditModule,
     // Rate limiting — the single mechanism for this NestJS service (replaces
     // @fastify/rate-limit, which can't do per-route in NestJS). Global default
     // 100 / 60s; sensitive routes tighten it via @Throttle() in controllers.

@@ -17,11 +17,10 @@ import type { JwtPayload } from '@/infrastructure/http/guards/jwt-auth.guard'
 import { OrgGuard } from '@/infrastructure/http/guards/org.guard'
 import type { OrgContext } from '@/infrastructure/http/types/org-context.interface'
 import { RequireOrgPermission } from '@/infrastructure/http/decorators/require-org-permission.decorator'
-import { OrgPermission } from '@/modules/tenant/domain/org-permissions'
+import { OrgPermission } from '@/modules/tenant/domain/org-rbac'
 import { CurrentUser } from '@/infrastructure/http/decorators/current-user.decorator'
 import { CurrentOrg } from '@/infrastructure/http/decorators/current-org.decorator'
 import { ZodValidationPipe } from '@/infrastructure/http/pipes/zod-validation.pipe'
-import { CreateOrgCommand } from '../../application/commands/create-org/create-org.command'
 import { CreateSpaceCommand } from '../../application/commands/create-space/create-space.command'
 import { UpdateMemberRoleCommand } from '../../application/commands/update-member-role/update-member-role.command'
 import { UpdateRolePermissionsCommand } from '../../application/commands/update-role-permissions/update-role-permissions.command'
@@ -31,7 +30,6 @@ import { GetOrgMembersQuery } from '../../application/queries/get-org-members/ge
 import { GetRolePermissionsQuery } from '../../application/queries/get-role-permissions/get-role-permissions.query'
 import { ListMyOrgsQuery } from '../../application/queries/list-my-orgs/list-my-orgs.query'
 import {
-  CreateOrgSchema,
   CreateSpaceSchema,
   UpdateMemberRoleSchema,
   ManageableOrgRoleSchema,
@@ -40,7 +38,6 @@ import {
   AcceptInviteSchema,
 } from '../schemas/org.schema'
 import type {
-  CreateOrgDto,
   CreateSpaceDto,
   UpdateMemberRoleDto,
   UpdateRolePermissionsDto,
@@ -56,18 +53,9 @@ export class OrgController {
     private readonly queryBus: QueryBus,
   ) {}
 
-  @Post('orgs')
-  @HttpCode(201)
-  @Throttle({ default: { ttl: 60_000, limit: 10 } }) // org creation is heavy → tighten
-  async createOrg(
-    @Body(new ZodValidationPipe(CreateOrgSchema)) body: CreateOrgDto,
-    @CurrentUser() user: JwtPayload,
-  ) {
-    const orgId = await this.commandBus.execute<CreateOrgCommand, string>(
-      new CreateOrgCommand(body.name, body.slug, user.sub),
-    )
-    return { id: orgId }
-  }
+  // Org creation is System-Admin-only now (see PlatformAdminController's
+  // POST admin/orgs, which provisions the owner via gRPC) — no self-service
+  // POST /orgs here anymore.
 
   // Login bootstrap: which orgs am I in? JWT-only (no OrgGuard — the client
   // calls this precisely to DISCOVER an orgId for the X-Org-Id header).
