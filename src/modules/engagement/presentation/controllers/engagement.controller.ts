@@ -17,7 +17,7 @@ import type { JwtPayload } from '@/infrastructure/http/guards/jwt-auth.guard'
 import { OrgGuard } from '@/infrastructure/http/guards/org.guard'
 import type { OrgContext } from '@/infrastructure/http/types/org-context.interface'
 import { RequireOrgPermission } from '@/infrastructure/http/decorators/require-org-permission.decorator'
-import { OrgPermission } from '@/modules/tenant/domain/org-permissions'
+import { OrgPermission } from '@/modules/tenant/domain/org-rbac'
 import { CurrentUser } from '@/infrastructure/http/decorators/current-user.decorator'
 import { CurrentOrg } from '@/infrastructure/http/decorators/current-org.decorator'
 import { ZodValidationPipe } from '@/infrastructure/http/pipes/zod-validation.pipe'
@@ -35,7 +35,7 @@ import { ListFollowsQuery } from '../../application/queries/list-follows/list-fo
 import { CastVoteSchema } from '../schemas/cast-vote.schema'
 import type { CastVoteDto } from '../schemas/cast-vote.schema'
 import { FollowSchema } from '../schemas/follow.schema'
-import type { FollowDto } from '../schemas/follow.schema'
+import type { FollowTargetDto } from '../schemas/follow.schema'
 import { AcceptAnswerSchema } from '../schemas/accept-answer.schema'
 import type { AcceptAnswerDto } from '../schemas/accept-answer.schema'
 
@@ -144,7 +144,7 @@ export class EngagementController {
   @RequireOrgPermission(OrgPermission.ENGAGEMENT_FOLLOW)
   @Throttle({ default: { ttl: 60_000, limit: 60 } })
   async follow(
-    @Body(new ZodValidationPipe(FollowSchema)) body: FollowDto,
+    @Body(new ZodValidationPipe(FollowSchema)) body: FollowTargetDto,
     @CurrentUser() user: JwtPayload,
   ): Promise<void> {
     await this.commandBus.execute(new FollowTargetCommand(user.sub, body.targetType, body.targetId))
@@ -156,7 +156,7 @@ export class EngagementController {
   @UseGuards(OrgGuard)
   @RequireOrgPermission(OrgPermission.ENGAGEMENT_FOLLOW)
   async unfollow(
-    @Body(new ZodValidationPipe(FollowSchema)) body: FollowDto,
+    @Body(new ZodValidationPipe(FollowSchema)) body: FollowTargetDto,
     @CurrentUser() user: JwtPayload,
   ): Promise<void> {
     await this.commandBus.execute(

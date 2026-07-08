@@ -5,4 +5,4 @@ export const FollowSchema = z.object({
   targetId: z.string().uuid(),
 })
 
-export type FollowDto = z.infer<typeof FollowSchema>
+export type FollowTargetDto = z.infer<typeof FollowSchema>
