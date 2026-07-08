@@ -1,7 +1,7 @@
 import { IQuery } from '@distributed-social-platform/shared-kernel'
 
 export class GetVoteSummaryQuery implements IQuery {
-  readonly name = 'GetVoteSummaryQuery'
+  readonly name = GetVoteSummaryQuery.name
 
   constructor(
     readonly itemId: string,

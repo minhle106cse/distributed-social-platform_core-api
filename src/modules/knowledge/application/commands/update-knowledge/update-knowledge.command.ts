@@ -1,7 +1,7 @@
 import { ICommand, CommandOptions } from '@distributed-social-platform/shared-kernel'
 
 export class UpdateKnowledgeCommand implements ICommand {
-  readonly name = 'UpdateKnowledgeCommand'
+  readonly name = UpdateKnowledgeCommand.name
   // Tạo Revision trong cùng transaction với update.
   readonly options: CommandOptions = { transactional: true, retryable: false }
 

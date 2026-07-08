@@ -1,7 +1,7 @@
 import { IQuery } from '@distributed-social-platform/shared-kernel'
 
 export class ListFollowsQuery implements IQuery {
-  readonly name = 'ListFollowsQuery'
+  readonly name = ListFollowsQuery.name
 
   constructor(
     readonly orgId: string,

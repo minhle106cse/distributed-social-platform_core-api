@@ -2,7 +2,7 @@ import { ICommand, CommandOptions } from '@distributed-social-platform/shared-ke
 import type { KnowledgeType } from '@/modules/knowledge/domain/entities/knowledge-item.entity'
 
 export class CreateKnowledgeCommand implements ICommand {
-  readonly name = 'CreateKnowledgeCommand'
+  readonly name = CreateKnowledgeCommand.name
   readonly options: CommandOptions = { transactional: false, retryable: false }
 
   constructor(

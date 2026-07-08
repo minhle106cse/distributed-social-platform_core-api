@@ -1,7 +1,7 @@
 import { IQuery } from '@distributed-social-platform/shared-kernel'
 
 export class GetFeedQuery implements IQuery {
-  readonly name = 'GetFeedQuery'
+  readonly name = GetFeedQuery.name
 
   constructor(
     public readonly orgId: string,

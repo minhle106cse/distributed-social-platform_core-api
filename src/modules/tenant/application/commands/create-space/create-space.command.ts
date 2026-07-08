@@ -2,7 +2,7 @@ import { ICommand, CommandOptions } from '@distributed-social-platform/shared-ke
 import type { SpaceVisibility } from '@/modules/tenant/domain/entities/space.entity'
 
 export class CreateSpaceCommand implements ICommand {
-  readonly name = 'CreateSpaceCommand'
+  readonly name = CreateSpaceCommand.name
   readonly options: CommandOptions = { transactional: false, retryable: false }
 
   constructor(

@@ -2,7 +2,7 @@ import { ICommand, CommandOptions } from '@distributed-social-platform/shared-ke
 import type { FollowTargetType } from '@/modules/engagement/domain/entities/follow.entity'
 
 export class FollowTargetCommand implements ICommand {
-  readonly name = 'FollowTargetCommand'
+  readonly name = FollowTargetCommand.name
   readonly options: CommandOptions = { transactional: true, retryable: false }
 
   constructor(

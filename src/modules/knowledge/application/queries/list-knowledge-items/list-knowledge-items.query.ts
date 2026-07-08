@@ -1,7 +1,7 @@
 import { IQuery } from '@distributed-social-platform/shared-kernel'
 
 export class ListKnowledgeItemsQuery implements IQuery {
-  readonly name = 'ListKnowledgeItemsQuery'
+  readonly name = ListKnowledgeItemsQuery.name
 
   constructor(
     public readonly orgId: string,

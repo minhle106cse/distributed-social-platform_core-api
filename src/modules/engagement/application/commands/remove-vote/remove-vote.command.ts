@@ -1,7 +1,7 @@
 import { ICommand, CommandOptions } from '@distributed-social-platform/shared-kernel'
 
 export class RemoveVoteCommand implements ICommand {
-  readonly name = 'RemoveVoteCommand'
+  readonly name = RemoveVoteCommand.name
   readonly options: CommandOptions = { transactional: false, retryable: false }
 
   constructor(
