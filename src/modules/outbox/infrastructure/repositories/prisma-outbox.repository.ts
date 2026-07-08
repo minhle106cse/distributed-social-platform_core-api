@@ -21,6 +21,7 @@ export class PrismaOutboxRepository implements IOutboxRepository {
         aggregateType: input.aggregateType,
         aggregateId: input.aggregateId,
         eventType: input.eventType,
+        orgId: input.orgId,
         payload: input.payload as Prisma.InputJsonValue,
       },
     })
