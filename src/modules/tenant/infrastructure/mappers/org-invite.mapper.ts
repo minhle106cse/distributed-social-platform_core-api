@@ -1,5 +1,5 @@
 import { OrgInvite } from '../../domain/entities/org-invite.entity'
-import type { ManageableOrgRole, OrgRole } from '../../domain/entities/membership.entity'
+import type { ManageableOrgRole, OrgRole } from '../../domain/org-rbac'
 
 type PrismaOrgInvite = {
   id: string

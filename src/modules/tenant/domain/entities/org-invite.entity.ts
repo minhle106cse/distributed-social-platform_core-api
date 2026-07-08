@@ -1,5 +1,5 @@
 import { v7 } from 'uuid'
-import type { ManageableOrgRole } from './membership.entity'
+import type { ManageableOrgRole } from '../org-rbac'
 
 export interface OrgInviteProps {
   id: string

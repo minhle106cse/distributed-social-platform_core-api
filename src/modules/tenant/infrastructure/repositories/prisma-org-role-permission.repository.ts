@@ -2,8 +2,8 @@ import { Injectable } from '@nestjs/common'
 import type { Prisma, OrgRole as PrismaOrgRole } from '@/generated'
 import { PrismaService } from '@/infrastructure/database/prisma/prisma.service'
 import { getTx } from '@distributed-social-platform/shared-kernel'
-import { DEFAULT_ROLE_PERMISSIONS } from '@/modules/tenant/domain/org-permissions'
-import type { OrgRole } from '@/modules/tenant/domain/entities/membership.entity'
+import { DEFAULT_ROLE_PERMISSIONS } from '@/modules/tenant/domain/org-rbac'
+import type { OrgRole } from '@/modules/tenant/domain/org-rbac'
 import type {
   IOrgRolePermissionRepository,
   OrgRolePermissionEntry,

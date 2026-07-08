@@ -1,22 +1,5 @@
 import { v7 } from 'uuid'
-
-export const ORG_ROLES = ['OWNER', 'ADMIN', 'MEMBER', 'GUEST'] as const
-export type OrgRole = (typeof ORG_ROLES)[number]
-
-// Reference roles without magic strings, e.g. `OrgRole.OWNER`.
-// `satisfies Record<OrgRole, OrgRole>` keeps this in sync with ORG_ROLES:
-// add a role to the array and TS forces a matching key here.
-export const OrgRole = {
-  OWNER: 'OWNER',
-  ADMIN: 'ADMIN',
-  MEMBER: 'MEMBER',
-  GUEST: 'GUEST',
-} as const satisfies Record<OrgRole, OrgRole>
-
-// Roles that can be assigned to a regular member (everything except OWNER).
-// OWNER is implicit-all and granted only to the org founder — assigning it via
-// invite / member / role-change must be a compile error, not a runtime check.
-export type ManageableOrgRole = Exclude<OrgRole, 'OWNER'>
+import { OrgRole, type ManageableOrgRole } from '../org-rbac'
 
 export interface MembershipProps {
   id: string

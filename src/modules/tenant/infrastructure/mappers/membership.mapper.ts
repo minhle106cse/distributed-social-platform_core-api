@@ -1,5 +1,5 @@
 import { Membership } from '../../domain/entities/membership.entity'
-import type { OrgRole } from '../../domain/entities/membership.entity'
+import type { OrgRole } from '../../domain/org-rbac'
 
 type PrismaMembership = {
   id: string

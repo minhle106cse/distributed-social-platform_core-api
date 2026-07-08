@@ -1,4 +1,4 @@
-import type { OrgRole } from '../entities/membership.entity'
+import type { OrgRole } from '../org-rbac'
 
 export interface OrgRolePermissionEntry {
   role: OrgRole

@@ -1,5 +1,5 @@
 import { SetMetadata } from '@nestjs/common'
-import type { OrgPermissionValue } from '@/modules/tenant/domain/org-permissions'
+import type { OrgPermissionValue } from '@/modules/tenant/domain/org-rbac'
 
 export const ORG_PERMISSION_KEY = 'requiredOrgPermission'
 

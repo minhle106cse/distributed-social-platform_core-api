@@ -1,8 +1,8 @@
 import { ICommand, CommandOptions } from '@distributed-social-platform/shared-kernel'
-import type { ManageableOrgRole } from '@/modules/tenant/domain/entities/membership.entity'
+import type { ManageableOrgRole } from '@/modules/tenant/domain/org-rbac'
 
 export class CreateInviteCommand implements ICommand {
-  readonly name = 'CreateInviteCommand'
+  readonly name = CreateInviteCommand.name
   readonly options: CommandOptions = { transactional: false, retryable: false }
 
   constructor(

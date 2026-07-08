@@ -14,9 +14,8 @@ import { MEMBERSHIP_REPOSITORY } from '@/modules/tenant/domain/repositories/memb
 import type { IMembershipRepository } from '@/modules/tenant/domain/repositories/membership.repository'
 import { ORG_ROLE_PERMISSION_REPOSITORY } from '@/modules/tenant/domain/repositories/org-role-permission.repository'
 import type { IOrgRolePermissionRepository } from '@/modules/tenant/domain/repositories/org-role-permission.repository'
-import { ALL_ORG_PERMISSIONS } from '@/modules/tenant/domain/org-permissions'
-import type { OrgPermissionValue } from '@/modules/tenant/domain/org-permissions'
-import { OrgRole } from '@/modules/tenant/domain/entities/membership.entity'
+import { ALL_ORG_PERMISSIONS, OrgRole } from '@/modules/tenant/domain/org-rbac'
+import type { OrgPermissionValue } from '@/modules/tenant/domain/org-rbac'
 import type { OrgContext } from '@/infrastructure/http/types/org-context.interface'
 import { setTenantId } from '@/common/tenant/tenant.context'
 

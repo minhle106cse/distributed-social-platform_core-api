@@ -3,8 +3,7 @@ import type { IQueryHandler } from '@distributed-social-platform/shared-kernel'
 import { QueryHandler } from '@/infrastructure/cqrs/decorators/query-handler.decorator'
 import { ORG_ROLE_PERMISSION_REPOSITORY } from '@/modules/tenant/domain/repositories/org-role-permission.repository'
 import type { IOrgRolePermissionRepository } from '@/modules/tenant/domain/repositories/org-role-permission.repository'
-import { ALL_ORG_PERMISSIONS } from '@/modules/tenant/domain/org-permissions'
-import { OrgRole } from '@/modules/tenant/domain/entities/membership.entity'
+import { ALL_ORG_PERMISSIONS, OrgRole } from '@/modules/tenant/domain/org-rbac'
 import { GetRolePermissionsQuery } from './get-role-permissions.query'
 
 export type RolePermissionsMap = Record<OrgRole, string[]>

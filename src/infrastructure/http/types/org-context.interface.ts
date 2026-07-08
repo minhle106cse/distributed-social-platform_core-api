@@ -1,4 +1,4 @@
-import type { OrgRole } from '@/modules/tenant/domain/entities/membership.entity'
+import type { OrgRole } from '@/modules/tenant/domain/org-rbac'
 
 // Per-request tenant context. Populated by OrgGuard after membership + permission
 // resolution, then consumed by @CurrentOrg() and controllers. OrgGuard also pushes
