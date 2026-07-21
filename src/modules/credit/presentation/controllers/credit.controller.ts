@@ -1,16 +1,15 @@
 import { Body, Controller, Get, HttpCode, Post, UseGuards, UseInterceptors } from '@nestjs/common'
 import { Throttle } from '@nestjs/throttler'
-import { CommandBus, QueryBus } from '@distributed-social-platform/shared-kernel'
+import { CommandBus, QueryBus, OrgPermission } from '@distributed-social-platform/shared-kernel'
 import { JwtAuthGuard } from '@/infrastructure/http/guards/jwt-auth.guard'
 import type { JwtPayload } from '@/infrastructure/http/guards/jwt-auth.guard'
 import { OrgGuard } from '@/infrastructure/http/guards/org.guard'
 import type { OrgContext } from '@/infrastructure/http/types/org-context.interface'
 import { RequireOrgPermission } from '@/infrastructure/http/decorators/require-org-permission.decorator'
-import { OrgPermission } from '@/modules/tenant/domain/org-rbac'
 import { CurrentUser } from '@/infrastructure/http/decorators/current-user.decorator'
 import { CurrentOrg } from '@/infrastructure/http/decorators/current-org.decorator'
 import { ZodValidationPipe } from '@/infrastructure/http/pipes/zod-validation.pipe'
-import { IdempotencyInterceptor } from '@/infrastructure/http/interceptors/idempotency.interceptor'
+import { IdempotencyInterceptor } from '@/infrastructure/http/idempotency/idempotency.interceptor'
 import { GetWalletQuery } from '../../application/queries/get-wallet/get-wallet.query'
 import { GrantCreditsCommand } from '../../application/commands/grant-credits/grant-credits.command'
 import { SpendCreditsCommand } from '../../application/commands/spend-credits/spend-credits.command'
@@ -36,10 +35,12 @@ export class CreditController {
   }
 
   // C2 — Grant credits to a member (source: org distributes a purchased pack).
+  // Idempotent via X-Idempotency-Key — same append-only-ledger risk as spend (C3).
   @Post('grant')
   @HttpCode(201)
   @UseGuards(OrgGuard)
   @RequireOrgPermission(OrgPermission.CREDIT_GRANT)
+  @UseInterceptors(IdempotencyInterceptor)
   @Throttle({ default: { ttl: 60_000, limit: 30 } })
   async grant(
     @Body(new ZodValidationPipe(GrantCreditsSchema)) body: GrantCreditsDto,

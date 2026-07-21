@@ -9,18 +9,19 @@ import {
   Post,
   Query,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common'
 import { Throttle } from '@nestjs/throttler'
-import { CommandBus, QueryBus } from '@distributed-social-platform/shared-kernel'
+import { CommandBus, QueryBus, OrgPermission } from '@distributed-social-platform/shared-kernel'
 import { JwtAuthGuard } from '@/infrastructure/http/guards/jwt-auth.guard'
 import type { JwtPayload } from '@/infrastructure/http/guards/jwt-auth.guard'
 import { OrgGuard } from '@/infrastructure/http/guards/org.guard'
 import type { OrgContext } from '@/infrastructure/http/types/org-context.interface'
 import { RequireOrgPermission } from '@/infrastructure/http/decorators/require-org-permission.decorator'
-import { OrgPermission } from '@/modules/tenant/domain/org-rbac'
 import { CurrentUser } from '@/infrastructure/http/decorators/current-user.decorator'
 import { CurrentOrg } from '@/infrastructure/http/decorators/current-org.decorator'
 import { ZodValidationPipe } from '@/infrastructure/http/pipes/zod-validation.pipe'
+import { IdempotencyInterceptor } from '@/infrastructure/http/idempotency/idempotency.interceptor'
 import { CreateKnowledgeCommand } from '../../application/commands/create-knowledge/create-knowledge.command'
 import { UpdateKnowledgeCommand } from '../../application/commands/update-knowledge/update-knowledge.command'
 import { PublishKnowledgeCommand } from '../../application/commands/publish-knowledge/publish-knowledge.command'
@@ -42,11 +43,13 @@ export class KnowledgeController {
     private readonly queryBus: QueryBus,
   ) {}
 
-  // E1 — Create knowledge item
+  // E1 — Create knowledge item. Idempotent via X-Idempotency-Key — no unique
+  // constraint stops a retried request from creating a duplicate document.
   @Post('knowledge')
   @HttpCode(201)
   @UseGuards(OrgGuard)
   @RequireOrgPermission(OrgPermission.KNOWLEDGE_WRITE)
+  @UseInterceptors(IdempotencyInterceptor)
   @Throttle({ default: { ttl: 60_000, limit: 30 } })
   async create(
     @Body(new ZodValidationPipe(CreateKnowledgeSchema)) body: CreateKnowledgeDto,
@@ -110,20 +113,31 @@ export class KnowledgeController {
     )
   }
 
-  // E5 — Publish knowledge item
+  // E5 — Publish knowledge item. Idempotent via X-Idempotency-Key — the domain
+  // state transition itself is a safe no-op on repeat (KnowledgeItem.publish()
+  // unconditionally sets status='PUBLISHED'), but the handler appends a fresh
+  // outbox event on every call regardless of prior state, so a retry still
+  // triggers a real (wasted) re-embed in search-service without this guard.
+  // Must return a body — the interceptor can't cache/replay a void response.
   @Post('knowledge/:id/publish')
   @HttpCode(200)
   @UseGuards(OrgGuard)
   @RequireOrgPermission(OrgPermission.KNOWLEDGE_WRITE)
+  @UseInterceptors(IdempotencyInterceptor)
+  @Throttle({ default: { ttl: 60_000, limit: 30 } })
   async publish(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     await this.commandBus.execute(new PublishKnowledgeCommand(id, user.sub))
+    return { id, status: 'PUBLISHED' }
   }
 
-  // E6 — Verify knowledge item
+  // E6 — Verify knowledge item. Chỉ là 1 DB write nhẹ (không publish outbox, không
+  // fan-out) — cùng mức throttle với các mutation nhẹ khác có OrgGuard (castVote,
+  // follow), không cần chặt như publish/create.
   @Post('knowledge/:id/verify')
   @HttpCode(200)
   @UseGuards(OrgGuard)
   @RequireOrgPermission(OrgPermission.KNOWLEDGE_VERIFY)
+  @Throttle({ default: { ttl: 60_000, limit: 60 } })
   async verify(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     await this.commandBus.execute(new VerifyKnowledgeCommand(id, user.sub))
   }

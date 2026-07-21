@@ -1,7 +1,5 @@
 import { Module } from '@nestjs/common'
 import { TenantModule } from '@/modules/tenant/tenant.module'
-import { IdempotencyInterceptor } from '@/infrastructure/http/interceptors/idempotency.interceptor'
-import { IdempotencyCleanupService } from '@/infrastructure/http/interceptors/idempotency-cleanup.service'
 import { CREDIT_EVENT_REPOSITORY } from './domain/repositories/credit-event.repository'
 import { WALLET_QUERY_REPOSITORY } from './application/queries/wallet.query-repository'
 import { GrantCreditsHandler } from './application/commands/grant-credits/grant-credits.handler'
@@ -27,9 +25,6 @@ import { CreditController } from './presentation/controllers/credit.controller'
     { provide: CREDIT_EVENT_REPOSITORY, useClass: PrismaCreditEventRepository },
     // Read repository (folds the ledger)
     { provide: WALLET_QUERY_REPOSITORY, useClass: PrismaWalletQueryRepository },
-    // Route-scoped interceptor (attached on POST /credits/spend) + its nightly reaper
-    IdempotencyInterceptor,
-    IdempotencyCleanupService,
   ],
 })
 export class CreditModule {}

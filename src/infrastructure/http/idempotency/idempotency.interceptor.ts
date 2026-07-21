@@ -1,20 +1,54 @@
-import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common'
+import {
+  CallHandler,
+  ConflictException,
+  ExecutionContext,
+  Injectable,
+  NestInterceptor,
+  UnprocessableEntityException,
+} from '@nestjs/common'
+import { createHash } from 'crypto'
 import type { FastifyRequest } from 'fastify'
-import { Observable, of } from 'rxjs'
-import { tap } from 'rxjs/operators'
+import { Observable, from, of, throwError } from 'rxjs'
+import { catchError, switchMap, tap } from 'rxjs/operators'
 import { Prisma } from '@/generated'
 import { PrismaService } from '@/infrastructure/database/prisma/prisma.service'
 
 const MUTATION_METHODS = ['POST', 'PATCH', 'PUT', 'DELETE']
 const TTL_MS = 24 * 60 * 60 * 1000 // 24h
 
+// Stripe-style fingerprint: detects a client reusing the same idempotency key
+// for a genuinely different request (bug, or a copy-pasted key) — that must be
+// rejected, not silently answered with the wrong cached response.
+function hashRequest(method: string, url: string, body: unknown): string {
+  return createHash('sha256')
+    .update(`${method} ${url}\n${JSON.stringify(body ?? null)}`)
+    .digest('hex')
+}
+
 /**
  * Replays the first response for a repeated `X-Idempotency-Key` instead of re-running
  * the handler. Guards against client retries (timeout → resend) double-charging credit.
  * Attach per-route (never global) on expensive side-effecting mutations only.
  *
- * Note: concurrent same-key requests are still protected by aggregate OCC — this only
- * short-circuits *sequential* retries.
+ * Claim-before-execute (resilience_patterns.md §1.1): the row is inserted with
+ * `response: null` BEFORE the handler runs, not after — this closes the
+ * concurrent-request window a check-then-run design leaves open (2 requests
+ * with the same key both see "no record yet" and both run the handler,
+ * confirmed as a real duplicate-row bug on POST /spaces, not a hypothetical
+ * one — see the memory/directive entry for the reproduction). A second
+ * concurrent request now either sees a completed response (replay) or a
+ * `response: null` claim-in-progress row (409 — no polling, fail fast, client
+ * retries) — it can never reach the handler a second time. On handler failure
+ * the claim row is deleted so a legitimate retry with the same key isn't
+ * stuck behind a phantom "in progress" for the full 24h TTL.
+ *
+ * Talks to PrismaService directly (no repository port) — the only consumers of
+ * this table are this class and IdempotencyCleanupService, both themselves
+ * infrastructure. A port would separate interface from implementation within
+ * the SAME layer with no Application-layer consumer on the other side — that's
+ * not a Hexagonal boundary, just indirection. Compare IOutboxRepository
+ * (domain/repositories/outbox.repository.ts), which real Application-layer
+ * command handlers depend on — that one is a real port.
  */
 @Injectable()
 export class IdempotencyInterceptor implements NestInterceptor {
@@ -28,29 +62,51 @@ export class IdempotencyInterceptor implements NestInterceptor {
       return next.handle()
     }
 
+    const requestHash = hashRequest(req.method, req.url, req.body)
+
     const existing = await this.prisma.client.idempotencyRecord.findUnique({ where: { key } })
     if (existing) {
-      return of(existing.response)
+      if (existing.requestHash !== requestHash) {
+        // Same key, different request — reusing an idempotency key is only ever
+        // valid for retrying the EXACT SAME request. Silently replaying the old
+        // response here would answer this different request with stale data.
+        throw new UnprocessableEntityException(
+          'This idempotency key was already used for a different request',
+        )
+      }
+      if (existing.response !== null) return of(existing.response)
+      throw new ConflictException('A request with this idempotency key is already in progress')
+    }
+
+    try {
+      await this.prisma.client.idempotencyRecord.create({
+        data: {
+          key,
+          requestHash,
+          response: Prisma.JsonNull,
+          expiresAt: new Date(Date.now() + TTL_MS),
+        },
+      })
+    } catch (err) {
+      // Lost the race to claim the key — another concurrent request beat us
+      // to the `create()` by microseconds. Same outcome as finding it above.
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        throw new ConflictException('A request with this idempotency key is already in progress')
+      }
+      throw err
     }
 
     return next.handle().pipe(
       tap((response) => {
         this.prisma.client.idempotencyRecord
-          .create({
-            data: {
-              key,
-              response: response as Prisma.InputJsonValue,
-              expiresAt: new Date(Date.now() + TTL_MS),
-            },
-          })
-          .catch((err: unknown) => {
-            // P2002 = a concurrent identical request already stored the record → benign.
-            // Any other failure must be visible, not silently swallowed.
-            if (!(err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002')) {
-              req.log.error({ err }, 'Failed to persist idempotency record')
-            }
-          })
+          .update({ where: { key }, data: { response: response as Prisma.InputJsonValue } })
+          .catch((err: unknown) => req.log.error({ err }, 'Failed to persist idempotency response'))
       }),
+      catchError((err: unknown) =>
+        from(
+          this.prisma.client.idempotencyRecord.delete({ where: { key } }).catch(() => undefined),
+        ).pipe(switchMap(() => throwError(() => err))),
+      ),
     )
   }
 }

@@ -1,10 +1,20 @@
-import { Body, Controller, Get, HttpCode, Post, Query, UseGuards } from '@nestjs/common'
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Post,
+  Query,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common'
 import { Throttle } from '@nestjs/throttler'
 import { CommandBus, QueryBus, SystemPermission } from '@distributed-social-platform/shared-kernel'
 import { JwtAuthGuard } from '@/infrastructure/http/guards/jwt-auth.guard'
 import { SystemPermissionGuard } from '@/infrastructure/http/guards/system-permission.guard'
 import { RequireSystemPermission } from '@/infrastructure/http/decorators/require-system-permission.decorator'
 import { ZodValidationPipe } from '@/infrastructure/http/pipes/zod-validation.pipe'
+import { IdempotencyInterceptor } from '@/infrastructure/http/idempotency/idempotency.interceptor'
 import { ListAllOrgsQuery } from '../../application/queries/list-all-orgs/list-all-orgs.query'
 import { ProvisionOrgCommand } from '../../application/commands/provision-org/provision-org.command'
 import type { ProvisionOrgResult } from '../../application/commands/provision-org/provision-org.handler'
@@ -32,11 +42,15 @@ export class PlatformAdminController {
   // org (see org.controller.ts, the old self-service POST /orgs is removed).
   // Provisions the owner's user account in auth-service (gRPC) as part of
   // the same operation — see ProvisionOrgHandler for the compensation logic
-  // if org creation fails after the owner was already provisioned.
+  // if org creation fails after the owner was already provisioned. Idempotent
+  // via X-Idempotency-Key — this is the single highest blast-radius mutation
+  // in the system (cross-service: real auth_db user + core_db org), a retried
+  // client request should never risk a second provision+compensate round-trip.
   @Post('admin/orgs')
   @HttpCode(201)
   @UseGuards(SystemPermissionGuard)
   @RequireSystemPermission(SystemPermission.ORG_CREATE)
+  @UseInterceptors(IdempotencyInterceptor)
   @Throttle({ default: { ttl: 60_000, limit: 10 } })
   async provisionOrg(
     @Body(new ZodValidationPipe(ProvisionOrgSchema)) body: ProvisionOrgDto,
