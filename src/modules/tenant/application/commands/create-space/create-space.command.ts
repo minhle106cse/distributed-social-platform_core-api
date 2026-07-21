@@ -3,7 +3,11 @@ import type { SpaceVisibility } from '@/modules/tenant/domain/entities/space.ent
 
 export class CreateSpaceCommand implements ICommand {
   readonly name = CreateSpaceCommand.name
-  readonly options: CommandOptions = { transactional: false, retryable: false }
+  readonly options: CommandOptions = {
+    transactional: false,
+    // idempotency-key: interceptor on POST /spaces — no natural key stops a duplicate space.
+    // none: two spaces with the same name from two distinct requests is an accepted outcome.
+  }
 
   constructor(
     public readonly orgId: string,

@@ -3,7 +3,11 @@ import { ICommand, CommandOptions } from '@distributed-social-platform/shared-ke
 export class UpdateKnowledgeCommand implements ICommand {
   readonly name = UpdateKnowledgeCommand.name
   // Tạo Revision trong cùng transaction với update.
-  readonly options: CommandOptions = { transactional: true, retryable: false }
+  readonly options: CommandOptions = {
+    transactional: true,
+    // set-semantics: title/body are overwritten. occ: command carries expectedVersion → repo rejects
+    // a stale write (two concurrent editors), so the appended Revision never races.
+  }
 
   constructor(
     public readonly id: string,

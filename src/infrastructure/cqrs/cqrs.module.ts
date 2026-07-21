@@ -17,7 +17,10 @@ import {
   TRANSACTION_MANAGER,
   type ITransactionManager,
 } from '@distributed-social-platform/shared-kernel'
-import { isPrismaTransientError } from '../database/prisma/prisma-transient-error'
+import {
+  isPrismaTransientError,
+  recordDbTransientErrorObservation,
+} from '../database/prisma/prisma-transient-error'
 
 @Global()
 @Module({
@@ -44,7 +47,15 @@ import { isPrismaTransientError } from '../database/prisma/prisma-transient-erro
     },
     {
       provide: RetryMiddleware,
-      useFactory: (logger: PinoLogger) => new RetryMiddleware(logger, isPrismaTransientError),
+      useFactory: (logger: PinoLogger) =>
+        new RetryMiddleware(
+          logger,
+          isPrismaTransientError,
+          undefined,
+          undefined,
+          undefined,
+          recordDbTransientErrorObservation,
+        ),
       inject: [PinoLogger],
     },
     {

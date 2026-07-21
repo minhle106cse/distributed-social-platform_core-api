@@ -3,7 +3,11 @@ import type { OrgRole } from '@/modules/tenant/domain/org-rbac'
 
 export class UpdateRolePermissionsCommand implements ICommand {
   readonly name = UpdateRolePermissionsCommand.name
-  readonly options: CommandOptions = { transactional: true, retryable: true }
+  readonly options: CommandOptions = {
+    transactional: true,
+    // set-semantics: overwrites the whole permission set — auto-retried on deadlock (transactional:true)
+    // lands on the same state, no external side effect, so blind retry is safe here.
+  }
 
   constructor(
     public readonly orgId: string,

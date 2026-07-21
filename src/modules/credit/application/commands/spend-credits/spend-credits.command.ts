@@ -2,7 +2,11 @@ import { ICommand, CommandOptions } from '@distributed-social-platform/shared-ke
 
 export class SpendCreditsCommand implements ICommand {
   readonly name = SpendCreditsCommand.name
-  readonly options: CommandOptions = { transactional: true, retryable: false }
+  readonly options: CommandOptions = {
+    transactional: true,
+    // idempotency-key: @UseInterceptors(IdempotencyInterceptor) on POST /credits/spend — append-only
+    // ledger, no natural key. occ: repo.save catches P2002 on @@unique([aggregateId, version]).
+  }
 
   constructor(
     public readonly orgId: string,

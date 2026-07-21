@@ -3,7 +3,12 @@ import type { KnowledgeType } from '@/modules/knowledge/domain/entities/knowledg
 
 export class CreateKnowledgeCommand implements ICommand {
   readonly name = CreateKnowledgeCommand.name
-  readonly options: CommandOptions = { transactional: false, retryable: false }
+  readonly options: CommandOptions = {
+    transactional: false,
+    // idempotency-key: interceptor on POST /knowledge — no natural key stops a duplicate document,
+    // and a retry would re-trigger embedding fan-out. none: two different docs with the same title
+    // is an accepted outcome (no unique constraint to add).
+  }
 
   constructor(
     public readonly orgId: string,

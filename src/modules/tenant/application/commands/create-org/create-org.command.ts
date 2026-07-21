@@ -2,7 +2,11 @@ import { ICommand, CommandOptions } from '@distributed-social-platform/shared-ke
 
 export class CreateOrgCommand implements ICommand {
   readonly name = CreateOrgCommand.name
-  readonly options: CommandOptions = { transactional: true, retryable: false }
+  readonly options: CommandOptions = {
+    transactional: true,
+    // unique-constraint: org slug is unique → rejects a second concurrent create. none: standalone
+    // HTTP idempotency is delegated to the caller (ProvisionOrg's idempotency-key interceptor).
+  }
 
   constructor(
     public readonly orgName: string,
