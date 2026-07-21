@@ -5,11 +5,13 @@ import { HttpLoggingInterceptor } from './infrastructure/http/interceptors/http-
 import { ResponseInterceptor } from './infrastructure/http/interceptors/response.interceptor'
 import { GlobalExceptionFilter } from './infrastructure/http/filter/global-exception.filter'
 import { APP_INTERCEPTOR, APP_FILTER, APP_GUARD } from '@nestjs/core'
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler'
+import { ThrottlerModule } from '@nestjs/throttler'
+import { OrgAwareThrottlerGuard } from './infrastructure/http/guards/org-aware-throttler.guard'
 import { ScheduleModule } from '@nestjs/schedule'
 import { LoggerModule } from 'nestjs-pino'
 import { ConfigModule } from './config/config.module'
 import { PrismaModule } from './infrastructure/database/prisma/prisma.module'
+import { HttpIdempotencyModule } from './infrastructure/http/idempotency/idempotency.module'
 import { createLogger } from '@distributed-social-platform/shared-kernel'
 
 import { CqrsModule } from './infrastructure/cqrs/cqrs.module'
@@ -29,6 +31,7 @@ import { CreditModule } from './modules/credit/credit.module'
     ConfigModule,
     CqrsModule,
     PrismaModule,
+    HttpIdempotencyModule,
     KafkaModule,
     MessagingModule,
     OutboxModule,
@@ -41,6 +44,7 @@ import { CreditModule } from './modules/credit/credit.module'
     // Rate limiting — the single mechanism for this NestJS service (replaces
     // @fastify/rate-limit, which can't do per-route in NestJS). Global default
     // 100 / 60s; sensitive routes tighten it via @Throttle() in controllers.
+    // Tracked per-org (OrgAwareThrottlerGuard below), not per-IP — see resilience_patterns.md §4.1.
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
     ScheduleModule.forRoot(),
     LoggerModule.forRootAsync({
@@ -61,7 +65,7 @@ import { CreditModule } from './modules/credit/credit.module'
     }),
   ],
   providers: [
-    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: OrgAwareThrottlerGuard },
     HttpLoggingInterceptor,
     {
       provide: APP_INTERCEPTOR,
