@@ -15,11 +15,10 @@ datasource db {
 // ─────────────────────────────────────────────
 
 model Organization {
-  id                String    @id @default(uuid())
+  id                String    @id @default(uuid(7))
   name              String
   slug              String
   seatLimit         Int       @default(10)     @map("seat_limit")
-  aiRateLimitPerMin Int       @default(20)     @map("ai_rate_limit_per_min")
   createdAt         DateTime  @default(now())  @map("created_at")
   deletedAt         DateTime?                  @map("deleted_at")
 
@@ -36,7 +35,7 @@ model Organization {
 }
 
 model Membership {
-  id       String   @id @default(uuid())
+  id       String   @id @default(uuid(7))
   orgId    String   @map("org_id")
   userId   String   @map("user_id")   // loose ref to auth_db — no cross-db FK
   role     OrgRole  @default(MEMBER)
@@ -57,7 +56,7 @@ enum OrgRole {
 }
 
 model Space {
-  id         String          @id @default(uuid())
+  id         String          @id @default(uuid(7))
   orgId      String          @map("org_id")
   name       String
   visibility SpaceVisibility @default(ORG)
@@ -80,7 +79,7 @@ enum SpaceVisibility {
 /// on org creation, then editable by the OWNER at runtime (no deploy needed).
 /// OWNER has NO rows here — OrgGuard treats OWNER as holding every permission (implicit).
 model OrgRolePermission {
-  id         String   @id @default(uuid())
+  id         String   @id @default(uuid(7))
   orgId      String   @map("org_id")
   role       OrgRole
   permission String // matches a value in the OrgPermission catalog (e.g. "knowledge:write")
@@ -94,7 +93,7 @@ model OrgRolePermission {
 }
 
 model OrgInvite {
-  id        String    @id @default(uuid())
+  id        String    @id @default(uuid(7))
   token     String    @unique
   orgId     String    @map("org_id")
   role      OrgRole   @default(MEMBER)
@@ -114,7 +113,7 @@ model OrgInvite {
 // ─────────────────────────────────────────────
 
 model KnowledgeItem {
-  id               String          @id @default(uuid())
+  id               String          @id @default(uuid(7))
   orgId            String          @map("org_id")
   spaceId          String          @map("space_id")
   type             KnowledgeType
@@ -156,7 +155,7 @@ enum KnowledgeStatus {
 }
 
 model Revision {
-  id             String   @id @default(uuid())
+  id             String   @id @default(uuid(7))
   itemId         String   @map("item_id")
   version        Int
   bodySnapshot   String   @db.Text @map("body_snapshot")
@@ -170,7 +169,7 @@ model Revision {
 }
 
 model Tag {
-  id    String @id @default(uuid())
+  id    String @id @default(uuid(7))
   orgId String @map("org_id")
   name  String
 
@@ -183,7 +182,7 @@ model Tag {
 // ─────────────────────────────────────────────
 
 model Vote {
-  id        String   @id @default(uuid())
+  id        String   @id @default(uuid(7))
   orgId     String   @map("org_id")
   itemId    String   @map("item_id")
   userId    String   @map("user_id")
@@ -198,7 +197,7 @@ model Vote {
 }
 
 model Bookmark {
-  id        String   @id @default(uuid())
+  id        String   @id @default(uuid(7))
   orgId     String   @map("org_id")
   userId    String   @map("user_id")
   itemId    String   @map("item_id")
@@ -210,7 +209,7 @@ model Bookmark {
 }
 
 model Follow {
-  id         String           @id @default(uuid())
+  id         String           @id @default(uuid(7))
   orgId      String           @map("org_id")
   userId     String           @map("user_id")
   targetType FollowTargetType @map("target_type")
@@ -235,7 +234,7 @@ enum FollowTargetType {
 /// eventType: CreditPurchased | CreditAwarded | CreditRefunded (+)
 ///            CreditSpent | CreditStaked | CreditReserved (−)
 model CreditEvent {
-  id          String   @id @default(uuid())
+  id          String   @id @default(uuid(7))
   aggregateId String   @map("aggregate_id")   // wallet id, per-user-per-org: "${orgId}:${userId}"
   eventType   String   @map("event_type")
   version     Int                              // per-aggregate sequence for OCC
@@ -257,7 +256,7 @@ model CreditEvent {
 /// Append-only reputation event ledger. NEVER UPDATE or DELETE rows.
 /// eventType: PointsEarned | PointsDeducted | BadgeAwarded | BadgeRevoked
 model ReputationEvent {
-  id          String   @id @default(uuid())
+  id          String   @id @default(uuid(7))
   aggregateId String   @map("aggregate_id")   // userId (reputation is per user per org)
   eventType   String   @map("event_type")
   version     Int                              // per-aggregate sequence for OCC
@@ -277,7 +276,7 @@ model ReputationEvent {
 
 /// Transactional Outbox: written atomically with domain event in same DB transaction.
 model OutboxEvent {
-  id            String       @id @default(uuid())
+  id            String       @id @default(uuid(7))
   aggregateType String       @map("aggregate_type")
   aggregateId   String       @map("aggregate_id")
   eventType     String       @map("event_type")
@@ -309,10 +308,17 @@ enum OutboxStatus {
 
 /// Idempotency key cache — prevents duplicate mutations from retried requests.
 model IdempotencyRecord {
-  key       String   @id               // X-Idempotency-Key header value
-  response  Json
-  createdAt DateTime @default(now()) @map("created_at")
-  expiresAt DateTime @map("expires_at")
+  key         String   @id               // X-Idempotency-Key header value
+  // sha256(method + url + body) claimed under this key — detects the real
+  // Stripe-style hazard of a client reusing the same key for a genuinely
+  // different request (bug, or copy-pasted key), which must be rejected
+  // rather than silently replaying the wrong cached response.
+  requestHash String   @map("request_hash")
+  // NULL = key claimed, handler still running (concurrent-request guard —
+  // resilience_patterns.md §1.1). Filled in once the handler completes.
+  response    Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+  expiresAt   DateTime @map("expires_at")
 
   @@index([expiresAt])
   @@map("idempotency_records")
