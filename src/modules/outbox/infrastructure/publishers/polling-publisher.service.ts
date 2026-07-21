@@ -7,13 +7,19 @@ import {
   type CloudEvent,
   type IMessagePublisher,
 } from '@distributed-social-platform/shared-kernel'
-import { Prisma } from '@/generated'
-import { PrismaService } from '@/infrastructure/database/prisma/prisma.service'
+import {
+  OUTBOX_REPOSITORY,
+  type IOutboxRepository,
+} from '../../domain/repositories/outbox.repository'
 
 /**
  * Polling Publisher (microservices.io) — the half of the Transactional Outbox
  * that moves rows from PENDING to Kafka/queue. Stale-INFLIGHT recovery after a
  * publisher crash is a separate concern, handled by OutboxReaperService.
+ *
+ * Driving adapter only — the claim/publish/mark algorithm lives behind
+ * IOutboxRepository (Hexagonal: swapping the scheduler trigger or the ORM
+ * touches only 1 side of this class, never both).
  */
 @Injectable()
 export class PollingPublisherService {
@@ -22,7 +28,7 @@ export class PollingPublisherService {
   private readonly pollBatchSize: number
 
   constructor(
-    private readonly prisma: PrismaService,
+    @Inject(OUTBOX_REPOSITORY) private readonly outboxRepo: IOutboxRepository,
     @Inject(MESSAGE_PUBLISHER) private readonly publisher: IMessagePublisher,
     @InjectPinoLogger(PollingPublisherService.name) private readonly logger: PinoLogger,
     config: ConfigService,
@@ -37,29 +43,8 @@ export class PollingPublisherService {
     this.running = true
 
     try {
-      // HA-safe claim: atomically flip a batch of PENDING rows to INFLIGHT under
-      // FOR UPDATE SKIP LOCKED, so two publisher replicas never grab the same row
-      // (each skips rows the other has locked). Publishing happens OUTSIDE any DB
-      // transaction — we never hold row locks across Kafka network I/O.
-      const claimed = await this.prisma.client.$queryRaw<{ id: string }[]>(Prisma.sql`
-        UPDATE outbox_events
-        SET status = 'INFLIGHT'::"OutboxStatus", claimed_at = NOW()
-        WHERE id IN (
-          SELECT id FROM outbox_events
-          WHERE status = 'PENDING'::"OutboxStatus"
-          ORDER BY created_at ASC
-          LIMIT ${this.pollBatchSize}
-          FOR UPDATE SKIP LOCKED
-        )
-        RETURNING id
-      `)
-
-      if (claimed.length === 0) return
-
-      const events = await this.prisma.client.outboxEvent.findMany({
-        where: { id: { in: claimed.map((r) => r.id) } },
-        orderBy: { createdAt: 'asc' },
-      })
+      const events = await this.outboxRepo.claimPendingBatch(this.pollBatchSize)
+      if (events.length === 0) return
 
       for (const event of events) {
         try {
@@ -78,27 +63,12 @@ export class PollingPublisherService {
           }
 
           await this.publisher.publish(cloudEvent)
-
-          await this.prisma.client.outboxEvent.update({
-            where: { id: event.id },
-            data: { status: 'PROCESSED', processedAt: new Date(), claimedAt: null },
-          })
+          await this.outboxRepo.markProcessed(event.id)
         } catch (err) {
-          const nextAttempts = event.attempts + 1
-          const nextStatus = nextAttempts >= this.maxAttempts ? 'FAILED_DLQ' : 'PENDING'
-
-          await this.prisma.client.outboxEvent.update({
-            where: { id: event.id },
-            data: {
-              attempts: nextAttempts,
-              lastError: String(err),
-              status: nextStatus,
-              claimedAt: null,
-            },
-          })
+          await this.outboxRepo.markFailed(event.id, event.attempts, String(err), this.maxAttempts)
 
           this.logger.warn(
-            { eventId: event.id, attempts: nextAttempts, err },
+            { eventId: event.id, attempts: event.attempts + 1, err },
             'Failed to publish outbox event',
           )
         }

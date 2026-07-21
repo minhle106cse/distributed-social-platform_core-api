@@ -18,11 +18,15 @@ export class KafkaProducerService implements ITransportPublisher, OnModuleInit, 
     kafkaClient: KafkaClientService,
     @InjectPinoLogger(KafkaProducerService.name) private readonly logger: PinoLogger,
   ) {
-    // Idempotent producer: dedups broker-side on kafkajs internal retries (sets
-    // acks=all + maxInFlightRequests≤5). Note delivery is still at-least-once overall
-    // (the outbox poll loop can re-publish after a crash), so any future consumer
-    // must be idempotent — the dedup guard lives on the consumer side, not here.
-    this.producer = kafkaClient.client.producer({ idempotent: true })
+    // Idempotent producer: dedups broker-side on kafkajs internal retries.
+    // maxInFlightRequests:5 is the Kafka-documented ceiling for idempotence to
+    // preserve ordering under retries (kafkajs does NOT set this automatically
+    // just because idempotent:true is passed — it must be set explicitly here;
+    // verified against kafkajs source, previously left unset). Note delivery is
+    // still at-least-once overall (the outbox poll loop can re-publish after a
+    // crash), so any future consumer must be idempotent — the dedup guard lives
+    // on the consumer side, not here.
+    this.producer = kafkaClient.client.producer({ idempotent: true, maxInFlightRequests: 5 })
   }
 
   async onModuleInit(): Promise<void> {

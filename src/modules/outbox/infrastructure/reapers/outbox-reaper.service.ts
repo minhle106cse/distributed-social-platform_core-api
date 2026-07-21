@@ -1,9 +1,11 @@
-import { Injectable } from '@nestjs/common'
+import { Inject, Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { Interval } from '@nestjs/schedule'
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino'
-import { Prisma } from '@/generated'
-import { PrismaService } from '@/infrastructure/database/prisma/prisma.service'
+import {
+  OUTBOX_REPOSITORY,
+  type IOutboxRepository,
+} from '../../domain/repositories/outbox.repository'
 
 /**
  * Reaper — recovers outbox rows a publisher claimed (INFLIGHT) but never
@@ -12,6 +14,9 @@ import { PrismaService } from '@/infrastructure/database/prisma/prisma.service'
  * Safe under at-least-once: if the row was actually published before the
  * crash, redelivery is deduped by the idempotent consumer. Separate service
  * from PollingPublisherService — different failure mode, different cadence.
+ *
+ * Driving adapter only — the reap threshold/query lives behind
+ * IOutboxRepository (see polling-publisher.service.ts for the same rationale).
  */
 @Injectable()
 export class OutboxReaperService {
@@ -19,7 +24,7 @@ export class OutboxReaperService {
   private readonly claimTimeoutMs: number
 
   constructor(
-    private readonly prisma: PrismaService,
+    @Inject(OUTBOX_REPOSITORY) private readonly outboxRepo: IOutboxRepository,
     @InjectPinoLogger(OutboxReaperService.name) private readonly logger: PinoLogger,
     config: ConfigService,
   ) {
@@ -32,14 +37,7 @@ export class OutboxReaperService {
     this.reaping = true
 
     try {
-      const claimTimeoutSec = Math.ceil(this.claimTimeoutMs / 1000)
-      const reaped = await this.prisma.client.$executeRaw(Prisma.sql`
-        UPDATE outbox_events
-        SET status = 'PENDING'::"OutboxStatus", claimed_at = NULL
-        WHERE status = 'INFLIGHT'::"OutboxStatus"
-          AND claimed_at < NOW() - make_interval(secs => ${claimTimeoutSec})
-      `)
-
+      const reaped = await this.outboxRepo.reapStaleInflight(this.claimTimeoutMs)
       if (reaped > 0) {
         this.logger.warn({ reaped }, 'Reaped stale INFLIGHT outbox rows back to PENDING')
       }
