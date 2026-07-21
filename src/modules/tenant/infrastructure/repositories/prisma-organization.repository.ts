@@ -37,7 +37,6 @@ export class PrismaOrganizationRepository implements IOrganizationRepository {
         name: data.name,
         slug: data.slug,
         seatLimit: data.seatLimit,
-        aiRateLimitPerMin: data.aiRateLimitPerMin,
         deletedAt: data.deletedAt,
       },
     })

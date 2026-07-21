@@ -12,10 +12,8 @@ import type { JwtPayload } from './jwt-auth.guard'
 import { ORG_PERMISSION_KEY } from '@/infrastructure/http/decorators/require-org-permission.decorator'
 import { MEMBERSHIP_REPOSITORY } from '@/modules/tenant/domain/repositories/membership.repository'
 import type { IMembershipRepository } from '@/modules/tenant/domain/repositories/membership.repository'
-import { ORG_ROLE_PERMISSION_REPOSITORY } from '@/modules/tenant/domain/repositories/org-role-permission.repository'
-import type { IOrgRolePermissionRepository } from '@/modules/tenant/domain/repositories/org-role-permission.repository'
-import { ALL_ORG_PERMISSIONS, OrgRole } from '@/modules/tenant/domain/org-rbac'
-import type { OrgPermissionValue } from '@/modules/tenant/domain/org-rbac'
+import { OrgPermissionResolver } from '@/modules/tenant/domain/services/resolve-org-permissions'
+import type { OrgPermissionValue } from '@distributed-social-platform/shared-kernel'
 import type { OrgContext } from '@/infrastructure/http/types/org-context.interface'
 import { setTenantId } from '@/common/tenant/tenant.context'
 
@@ -25,8 +23,7 @@ export class OrgGuard implements CanActivate {
     @Inject(MEMBERSHIP_REPOSITORY)
     private readonly membershipRepo: IMembershipRepository,
     private readonly reflector: Reflector,
-    @Inject(ORG_ROLE_PERMISSION_REPOSITORY)
-    private readonly rolePermissionRepo: IOrgRolePermissionRepository,
+    private readonly permissionResolver: OrgPermissionResolver,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -44,7 +41,7 @@ export class OrgGuard implements CanActivate {
     if (!membership) throw new ForbiddenException('You are not a member of this organization')
 
     const orgRole = membership.role
-    const permissions = await this.resolvePermissions(orgId, orgRole)
+    const permissions = await this.permissionResolver.resolve(orgId, orgRole)
 
     request.org = { orgId, orgRole, permissions }
     // Đưa orgId (đã xác thực) vào AsyncLocalStorage cho repo đọc qua getTenantId().
@@ -60,13 +57,5 @@ export class OrgGuard implements CanActivate {
     }
 
     return true
-  }
-
-  // OWNER luôn có toàn bộ quyền (implicit) → chống lock-out, không phụ thuộc bảng mapping.
-  // Các role khác: đọc mapping động từ DB (org_role_permissions).
-  // TODO(Phase 3): cache kết quả vào Redis (key org_perms:{orgId}:{role}, TTL 5') + invalidate khi update.
-  private async resolvePermissions(orgId: string, role: OrgRole): Promise<string[]> {
-    if (role === OrgRole.OWNER) return [...ALL_ORG_PERMISSIONS]
-    return this.rolePermissionRepo.findByOrgAndRole(orgId, role)
   }
 }

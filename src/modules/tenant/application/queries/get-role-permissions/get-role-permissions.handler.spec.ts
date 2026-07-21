@@ -1,5 +1,7 @@
 import type { IOrgRolePermissionRepository } from '@/modules/tenant/domain/repositories/org-role-permission.repository'
-import { ALL_ORG_PERMISSIONS, OrgPermission, OrgRole } from '@/modules/tenant/domain/org-rbac'
+import { OrgRole } from '@/modules/tenant/domain/org-rbac'
+import { OrgPermissionResolver } from '@/modules/tenant/domain/services/resolve-org-permissions'
+import { ALL_ORG_PERMISSIONS, OrgPermission } from '@distributed-social-platform/shared-kernel'
 import { GetRolePermissionsHandler } from './get-role-permissions.handler'
 import { GetRolePermissionsQuery } from './get-role-permissions.query'
 
@@ -15,7 +17,9 @@ describe('GetRolePermissionsHandler', () => {
       findByOrgAndRole: jest.fn(),
     } as unknown as jest.Mocked<IOrgRolePermissionRepository>
 
-    handler = new GetRolePermissionsHandler(mockRepo)
+    // Real instance (not mocked) — OrgPermissionResolver.resolve() is a pure,
+    // deterministic short-circuit for OWNER, no reason to fake it here.
+    handler = new GetRolePermissionsHandler(mockRepo, new OrgPermissionResolver(mockRepo))
   })
 
   it('should always report OWNER as holding every permission (implicit-all), ignoring any stored OWNER rows', async () => {

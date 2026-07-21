@@ -8,16 +8,17 @@ import {
   Post,
   Query,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common'
 import { Throttle } from '@nestjs/throttler'
 import { randomBytes } from 'crypto'
-import { CommandBus, QueryBus } from '@distributed-social-platform/shared-kernel'
+import { CommandBus, QueryBus, OrgPermission } from '@distributed-social-platform/shared-kernel'
 import { JwtAuthGuard } from '@/infrastructure/http/guards/jwt-auth.guard'
+import { IdempotencyInterceptor } from '@/infrastructure/http/idempotency/idempotency.interceptor'
 import type { JwtPayload } from '@/infrastructure/http/guards/jwt-auth.guard'
 import { OrgGuard } from '@/infrastructure/http/guards/org.guard'
 import type { OrgContext } from '@/infrastructure/http/types/org-context.interface'
 import { RequireOrgPermission } from '@/infrastructure/http/decorators/require-org-permission.decorator'
-import { OrgPermission } from '@/modules/tenant/domain/org-rbac'
 import { CurrentUser } from '@/infrastructure/http/decorators/current-user.decorator'
 import { CurrentOrg } from '@/infrastructure/http/decorators/current-org.decorator'
 import { ZodValidationPipe } from '@/infrastructure/http/pipes/zod-validation.pipe'
@@ -90,10 +91,13 @@ export class OrgController {
     await this.commandBus.execute(new UpdateMemberRoleCommand(org.orgId, targetUserId, body.role))
   }
 
+  // Idempotent via X-Idempotency-Key — no unique constraint stops a retried
+  // request from creating a duplicate (empty) space container.
   @Post('spaces')
   @HttpCode(201)
   @UseGuards(OrgGuard)
   @RequireOrgPermission(OrgPermission.ORG_MANAGE_SPACES)
+  @UseInterceptors(IdempotencyInterceptor)
   @Throttle({ default: { ttl: 60_000, limit: 30 } })
   async createSpace(
     @Body(new ZodValidationPipe(CreateSpaceSchema)) body: CreateSpaceDto,

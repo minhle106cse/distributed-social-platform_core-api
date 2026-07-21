@@ -1,5 +1,6 @@
 import type { IOrgRolePermissionRepository } from '@/modules/tenant/domain/repositories/org-role-permission.repository'
-import { OrgPermission, OrgRole } from '@/modules/tenant/domain/org-rbac'
+import { OrgRole } from '@/modules/tenant/domain/org-rbac'
+import { OrgPermission } from '@distributed-social-platform/shared-kernel'
 import {
   CannotModifyOwnerPermissionsError,
   InvalidOrgPermissionError,

@@ -5,7 +5,6 @@ export interface OrganizationProps {
   name: string
   slug: string
   seatLimit: number
-  aiRateLimitPerMin: number
   createdAt: Date
   deletedAt: Date | null
 }
@@ -15,7 +14,6 @@ export class Organization {
   private _name: string
   private _slug: string
   private _seatLimit: number
-  private _aiRateLimitPerMin: number
   private _createdAt: Date
   private _deletedAt: Date | null
 
@@ -24,23 +22,16 @@ export class Organization {
     this._name = props.name
     this._slug = props.slug
     this._seatLimit = props.seatLimit
-    this._aiRateLimitPerMin = props.aiRateLimitPerMin
     this._createdAt = new Date(props.createdAt.getTime())
     this._deletedAt = props.deletedAt ? new Date(props.deletedAt.getTime()) : null
   }
 
-  static create(props: {
-    name: string
-    slug: string
-    seatLimit?: number
-    aiRateLimitPerMin?: number
-  }): Organization {
+  static create(props: { name: string; slug: string; seatLimit?: number }): Organization {
     return new Organization({
       id: v7(),
       name: props.name,
       slug: props.slug,
       seatLimit: props.seatLimit ?? 10,
-      aiRateLimitPerMin: props.aiRateLimitPerMin ?? 20,
       createdAt: new Date(),
       deletedAt: null,
     })
@@ -61,9 +52,6 @@ export class Organization {
   }
   get seatLimit() {
     return this._seatLimit
-  }
-  get aiRateLimitPerMin() {
-    return this._aiRateLimitPerMin
   }
   get createdAt() {
     return new Date(this._createdAt.getTime())

@@ -3,7 +3,8 @@ import type { IQueryHandler } from '@distributed-social-platform/shared-kernel'
 import { QueryHandler } from '@/infrastructure/cqrs/decorators/query-handler.decorator'
 import { ORG_ROLE_PERMISSION_REPOSITORY } from '@/modules/tenant/domain/repositories/org-role-permission.repository'
 import type { IOrgRolePermissionRepository } from '@/modules/tenant/domain/repositories/org-role-permission.repository'
-import { ALL_ORG_PERMISSIONS, OrgRole } from '@/modules/tenant/domain/org-rbac'
+import { OrgRole } from '@/modules/tenant/domain/org-rbac'
+import { OrgPermissionResolver } from '@/modules/tenant/domain/services/resolve-org-permissions'
 import { GetRolePermissionsQuery } from './get-role-permissions.query'
 
 export type RolePermissionsMap = Record<OrgRole, string[]>
@@ -16,13 +17,17 @@ export class GetRolePermissionsHandler implements IQueryHandler<
 > {
   constructor(
     @Inject(ORG_ROLE_PERMISSION_REPOSITORY) private readonly repo: IOrgRolePermissionRepository,
+    private readonly permissionResolver: OrgPermissionResolver,
   ) {}
 
   async execute(query: GetRolePermissionsQuery): Promise<RolePermissionsMap> {
     const entries = await this.repo.findByOrg(query.orgId)
 
     const map: RolePermissionsMap = {
-      OWNER: [...ALL_ORG_PERMISSIONS],
+      // OWNER implicit-all resolved via OrgPermissionResolver (single source
+      // of truth, same as OrgGuard/CheckMembershipHandler) instead of
+      // hardcoding ALL_ORG_PERMISSIONS a second time in this file.
+      OWNER: await this.permissionResolver.resolve(query.orgId, OrgRole.OWNER),
       ADMIN: [],
       MEMBER: [],
       GUEST: [],

@@ -24,5 +24,6 @@ export const envConfig = registerAs('env', () => {
     outboxClaimTimeoutMs: env.OUTBOX_CLAIM_TIMEOUT_MS,
     authGrpcUrl: env.AUTH_GRPC_URL,
     internalGrpcSharedSecret: env.INTERNAL_GRPC_SHARED_SECRET,
+    coreGrpcPort: env.CORE_GRPC_PORT,
   }
 })

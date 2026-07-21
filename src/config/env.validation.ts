@@ -16,6 +16,11 @@ export const envValidationSchema = z.object({
   // (platform-admin org provisioning). Shared secret must match auth-service's.
   AUTH_GRPC_URL: z.string().default('localhost:50051'),
   INTERNAL_GRPC_SHARED_SECRET: z.string().min(16),
+
+  // gRPC server port for core-api's own internal MembershipVerification
+  // service (called by search-service to verify X-Org-Id before trusting it —
+  // resilience_patterns.md IDOR fix).
+  CORE_GRPC_PORT: z.coerce.number().default(50052),
 })
 
 export function validate(config: Record<string, unknown>) {

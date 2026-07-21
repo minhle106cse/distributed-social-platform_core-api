@@ -5,7 +5,6 @@ type PrismaOrg = {
   name: string
   slug: string
   seatLimit: number
-  aiRateLimitPerMin: number
   createdAt: Date
   deletedAt: Date | null
 }
@@ -17,7 +16,6 @@ export class OrganizationMapper {
       name: row.name,
       slug: row.slug,
       seatLimit: row.seatLimit,
-      aiRateLimitPerMin: row.aiRateLimitPerMin,
       createdAt: row.createdAt,
       deletedAt: row.deletedAt,
     })
@@ -29,7 +27,6 @@ export class OrganizationMapper {
       name: org.name,
       slug: org.slug,
       seatLimit: org.seatLimit,
-      aiRateLimitPerMin: org.aiRateLimitPerMin,
       createdAt: org.createdAt,
       deletedAt: org.deletedAt,
     }

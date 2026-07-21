@@ -13,6 +13,7 @@ import { AcceptInviteHandler } from './application/commands/accept-invite/accept
 import { GetOrgMembersHandler } from './application/queries/get-org-members/get-org-members.handler'
 import { ListMyOrgsHandler } from './application/queries/list-my-orgs/list-my-orgs.handler'
 import { GetRolePermissionsHandler } from './application/queries/get-role-permissions/get-role-permissions.handler'
+import { CheckMembershipHandler } from './application/queries/check-membership/check-membership.handler'
 import { PrismaOrganizationRepository } from './infrastructure/repositories/prisma-organization.repository'
 import { PrismaMembershipRepository } from './infrastructure/repositories/prisma-membership.repository'
 import { PrismaSpaceRepository } from './infrastructure/repositories/prisma-space.repository'
@@ -22,12 +23,20 @@ import { PrismaOrgInviteRepository } from './infrastructure/repositories/prisma-
 import { OrgController } from './presentation/controllers/org.controller'
 import { OrgGuard } from '@/infrastructure/http/guards/org.guard'
 import { ORG_INVITE_REPOSITORY } from './domain/repositories/org-invite.repository'
+import { OrgPermissionResolver } from './domain/services/resolve-org-permissions'
 
 @Module({
   controllers: [OrgController],
-  exports: [OrgGuard, MEMBERSHIP_REPOSITORY, ORG_ROLE_PERMISSION_REPOSITORY, SPACE_REPOSITORY],
+  exports: [
+    OrgGuard,
+    OrgPermissionResolver,
+    MEMBERSHIP_REPOSITORY,
+    ORG_ROLE_PERMISSION_REPOSITORY,
+    SPACE_REPOSITORY,
+  ],
   providers: [
     OrgGuard,
+    OrgPermissionResolver,
     // Command handlers
     CreateOrgHandler,
     CreateSpaceHandler,
@@ -39,6 +48,7 @@ import { ORG_INVITE_REPOSITORY } from './domain/repositories/org-invite.reposito
     GetOrgMembersHandler,
     ListMyOrgsHandler,
     GetRolePermissionsHandler,
+    CheckMembershipHandler,
     // Write repositories
     { provide: ORGANIZATION_REPOSITORY, useClass: PrismaOrganizationRepository },
     { provide: MEMBERSHIP_REPOSITORY, useClass: PrismaMembershipRepository },
