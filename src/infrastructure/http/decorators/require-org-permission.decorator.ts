@@ -1,5 +1,5 @@
 import { SetMetadata } from '@nestjs/common'
-import type { OrgPermissionValue } from '@/modules/tenant/domain/org-rbac'
+import type { OrgPermissionValue } from '@distributed-social-platform/shared-kernel'
 
 export const ORG_PERMISSION_KEY = 'requiredOrgPermission'
 

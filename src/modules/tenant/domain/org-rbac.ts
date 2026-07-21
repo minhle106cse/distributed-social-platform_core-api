@@ -1,3 +1,5 @@
+import { OrgPermission, type OrgPermissionValue } from '@distributed-social-platform/shared-kernel'
+
 // ── Org Role Catalog (closed set — see directives/multi_tenancy.md) ──────────
 // Unlike SystemRole (auth-service, dynamic — created via POST /roles), Org
 // roles are a FIXED enum: you can only assign/revoke them and edit their
@@ -20,46 +22,12 @@ export const OrgRole = {
 // invite / member / role-change must be a compile error, not a runtime check.
 export type ManageableOrgRole = Exclude<OrgRole, 'OWNER'>
 
-// ── Org Permission Catalog (code = source of truth) ──────────────────────────
-// Also a closed set, same as OrgRole above — unlike SystemPermission
-// (auth-service, dynamic — created via POST /permissions). Mỗi permission gắn
-// với một feature/endpoint cụ thể. Thêm permission = thêm code.
-// "Ai có permission nào" (mapping role→permission) lưu trong DB org_role_permissions.
-export const OrgPermission = {
-  // Knowledge
-  KNOWLEDGE_READ: 'knowledge:read',
-  KNOWLEDGE_WRITE: 'knowledge:write',
-  KNOWLEDGE_VERIFY: 'knowledge:verify',
-
-  // Engagement
-  ENGAGEMENT_VOTE: 'engagement:vote',
-  ENGAGEMENT_BOOKMARK: 'engagement:bookmark',
-  ENGAGEMENT_FOLLOW: 'engagement:follow',
-  ENGAGEMENT_ACCEPT_ANSWER: 'engagement:accept_answer',
-
-  // AI
-  AI_QUERY: 'ai:query',
-
-  // Credit economy
-  CREDIT_READ: 'credit:read',
-  CREDIT_SPEND: 'credit:spend',
-  CREDIT_GRANT: 'credit:grant', // distribute org credit to members (admin/owner)
-
-  // Org management
-  ORG_MANAGE_MEMBERS: 'org:manage_members',
-  ORG_MANAGE_SPACES: 'org:manage_spaces',
-  ORG_MANAGE_BILLING: 'org:manage_billing',
-  ORG_MANAGE_ROLES: 'org:manage_roles', // meta: chỉnh mapping role→permission của org
-} as const
-
-export type OrgPermissionValue = (typeof OrgPermission)[keyof typeof OrgPermission]
-
-// Toàn bộ permission tồn tại — dùng cho OWNER (implicit-all) và validate input.
-export const ALL_ORG_PERMISSIONS: OrgPermissionValue[] = Object.values(OrgPermission)
-
-export function isValidOrgPermission(value: string): value is OrgPermissionValue {
-  return (ALL_ORG_PERMISSIONS as string[]).includes(value)
-}
+// ── Org Permission Catalog — MOVED to shared-kernel (packages/shared-kernel/
+// src/auth/org-permissions.ts) once search-service/notification-service also
+// needed to check these codes remotely (gRPC MembershipVerification). Import
+// `OrgPermission`/`OrgPermissionValue`/`ALL_ORG_PERMISSIONS`/`isValidOrgPermission`
+// from `@distributed-social-platform/shared-kernel` directly — re-exported
+// here only where DEFAULT_ROLE_PERMISSIONS below needs the value.
 
 // ── Default Mapping (SEED only) ──────────────────────────────────────────────
 // Chỉ dùng để khởi tạo org_role_permissions khi tạo org. Runtime đọc từ DB.
