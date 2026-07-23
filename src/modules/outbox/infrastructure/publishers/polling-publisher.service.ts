@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config'
 import { Interval } from '@nestjs/schedule'
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino'
 import {
+  LogContext,
   MESSAGE_PUBLISHER,
   type CloudEvent,
   type IMessagePublisher,
@@ -60,6 +61,7 @@ export class PollingPublisherService {
             data: event.payload,
             orgid: event.orgId,
             partitionkey: event.aggregateId,
+            traceparent: event.traceparent ?? undefined,
           }
 
           await this.publisher.publish(cloudEvent)
@@ -68,7 +70,7 @@ export class PollingPublisherService {
           await this.outboxRepo.markFailed(event.id, event.attempts, String(err), this.maxAttempts)
 
           this.logger.warn(
-            { eventId: event.id, attempts: event.attempts + 1, err },
+            { context: LogContext.OUTBOX, eventId: event.id, attempts: event.attempts + 1, err },
             'Failed to publish outbox event',
           )
         }

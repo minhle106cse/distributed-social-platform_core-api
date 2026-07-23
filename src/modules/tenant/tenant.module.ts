@@ -3,6 +3,7 @@ import { ORGANIZATION_REPOSITORY } from './domain/repositories/organization.repo
 import { MEMBERSHIP_REPOSITORY } from './domain/repositories/membership.repository'
 import { SPACE_REPOSITORY } from './domain/repositories/space.repository'
 import { ORG_ROLE_PERMISSION_REPOSITORY } from './domain/repositories/org-role-permission.repository'
+import type { IOrgRolePermissionRepository } from './domain/repositories/org-role-permission.repository'
 import { MEMBERSHIP_QUERY_REPOSITORY } from './application/queries/membership.query-repository'
 import { CreateOrgHandler } from './application/commands/create-org/create-org.handler'
 import { CreateSpaceHandler } from './application/commands/create-space/create-space.handler'
@@ -36,7 +37,11 @@ import { OrgPermissionResolver } from './domain/services/resolve-org-permissions
   ],
   providers: [
     OrgGuard,
-    OrgPermissionResolver,
+    {
+      provide: OrgPermissionResolver,
+      useFactory: (repo: IOrgRolePermissionRepository) => new OrgPermissionResolver(repo),
+      inject: [ORG_ROLE_PERMISSION_REPOSITORY],
+    },
     // Command handlers
     CreateOrgHandler,
     CreateSpaceHandler,

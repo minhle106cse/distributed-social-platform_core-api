@@ -293,6 +293,11 @@ model OutboxEvent {
   // Set when a poller claims the row (PENDING → INFLIGHT). Lets a reaper reset
   // rows orphaned by a publisher crash between claim and publish.
   claimedAt     DateTime?    @map("claimed_at")
+  // W3C traceparent of the command that produced this row (captured from the
+  // trace-context ALS at append() time) — copied onto the CloudEvent's
+  // `traceparent` extension at publish time so the consumer's logs correlate
+  // back to this request. Null for events with no active trace context.
+  traceparent   String?      @map("traceparent")
 
   @@index([status, createdAt])
   @@index([orgId])

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { Cron } from '@nestjs/schedule'
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino'
+import { LogContext } from '@distributed-social-platform/shared-kernel'
 import { PrismaService } from '@/infrastructure/database/prisma/prisma.service'
 
 /**
@@ -26,7 +27,12 @@ export class IdempotencyCleanupService {
       const { count } = await this.prisma.client.idempotencyRecord.deleteMany({
         where: { expiresAt: { lt: new Date() } },
       })
-      if (count > 0) this.logger.info({ purged: count }, 'Purged expired idempotency records')
+      if (count > 0) {
+        this.logger.info(
+          { context: LogContext.IDEMPOTENCY, purged: count },
+          'Purged expired idempotency records',
+        )
+      }
     } finally {
       this.running = false
     }

@@ -12,5 +12,6 @@ export class UpdateMemberRoleCommand implements ICommand {
     public readonly orgId: string,
     public readonly targetUserId: string,
     public readonly newRole: ManageableOrgRole,
+    public readonly actorUserId: string,
   ) {}
 }

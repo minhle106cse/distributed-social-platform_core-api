@@ -4,6 +4,7 @@ import {
   type CallHandler,
   type ExecutionContext,
 } from '@nestjs/common'
+import type { PinoLogger } from 'nestjs-pino'
 import { of, throwError, firstValueFrom } from 'rxjs'
 import { Prisma } from '@/generated'
 import { IdempotencyInterceptor } from './idempotency.interceptor'
@@ -77,11 +78,17 @@ function buildContext(
 describe('IdempotencyInterceptor', () => {
   let store: FakeIdempotencyStore
   let interceptor: IdempotencyInterceptor
+  let mockLogger: jest.Mocked<PinoLogger>
 
   beforeEach(() => {
     store = new FakeIdempotencyStore()
     const prisma = { client: { idempotencyRecord: store } } as any
-    interceptor = new IdempotencyInterceptor(prisma)
+    mockLogger = {
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+    } as unknown as jest.Mocked<PinoLogger>
+    interceptor = new IdempotencyInterceptor(prisma, mockLogger)
   })
 
   it('passes through untouched when there is no X-Idempotency-Key header', async () => {
@@ -104,6 +111,21 @@ describe('IdempotencyInterceptor', () => {
       where: { key: 'key-1' },
       data: { response: { id: '1' } },
     })
+  })
+
+  it('logs via the injected logger (not req.log — 2026-07-25, req.log is a silent stub under Fastify+nestjs-pino) when persisting the response fails', async () => {
+    store.update.mockImplementationOnce(() => Promise.reject(new Error('db write failed')))
+    const handlerFn = jest.fn(() => of({ id: '1' }))
+
+    await firstValueFrom(
+      await interceptor.intercept(buildContext('POST', 'key-persist-fail'), { handle: handlerFn }),
+    )
+    await new Promise((r) => setImmediate(r)) // let the .catch() microtask run
+
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      expect.objectContaining({ key: 'key-persist-fail' }),
+      'Failed to persist idempotency response',
+    )
   })
 
   it('replays the cached response on a sequential retry, without running the handler again', async () => {
@@ -138,6 +160,20 @@ describe('IdempotencyInterceptor', () => {
     })
     expect(await firstValueFrom(result$)).toEqual({ id: 'retried' })
     expect(retryHandlerFn).toHaveBeenCalledTimes(1)
+  })
+
+  it('logs an error when the claim-row delete ITSELF fails after a handler failure (2026-07-25 — previously swallowed silently)', async () => {
+    store.delete.mockImplementationOnce(() => Promise.reject(new Error('db unreachable')))
+    const failingHandler: CallHandler = { handle: () => throwError(() => new Error('boom')) }
+
+    await expect(
+      firstValueFrom(await interceptor.intercept(buildContext('POST', 'key-4'), failingHandler)),
+    ).rejects.toThrow('boom') // original handler error still propagates, not the delete error
+
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      expect.objectContaining({ key: 'key-4' }),
+      expect.stringContaining('Failed to delete idempotency claim row'),
+    )
   })
 
   it('rejects reuse of the same key for a genuinely DIFFERENT request instead of replaying the stale response', async () => {

@@ -1,6 +1,7 @@
 import { collectDefaultMetrics } from 'prom-client'
 import { ConfigService } from '@nestjs/config'
 import { Logger } from 'nestjs-pino'
+import { LogContext } from '@distributed-social-platform/shared-kernel'
 import { createApp } from './app'
 import { GrpcServerBootstrap } from './bootstrap/grpc'
 
@@ -24,10 +25,10 @@ async function bootstrap() {
   // the forced-exit timeout that enableShutdownHooks() didn't have, AND
   // closes the gRPC server it doesn't know about (resilience_patterns.md §5).
   const shutdown = (signal: string) => {
-    logger.log(`${signal} received, shutting down gracefully...`)
+    logger.log(`${signal} received, shutting down gracefully...`, LogContext.LIFECYCLE)
 
     const forceExit = setTimeout(() => {
-      logger.error('Graceful shutdown timed out, forcing exit')
+      logger.error('Graceful shutdown timed out, forcing exit', LogContext.LIFECYCLE)
       process.exit(1)
     }, SHUTDOWN_TIMEOUT_MS)
     forceExit.unref() // don't let this timer itself keep the process alive
@@ -38,11 +39,16 @@ async function bootstrap() {
     ])
       .then(() => {
         clearTimeout(forceExit)
-        logger.log('Shutdown complete')
+        logger.log('Shutdown complete', LogContext.LIFECYCLE)
         process.exit(0)
       })
       .catch((err) => {
-        logger.error(err, 'Error during shutdown')
+        // nestjs-pino's Logger.call() treats the LAST trailing arg as
+        // `context`, not a message — passing (err, 'text') like before made
+        // 'text' silently become the context field and DROPPED the message
+        // entirely (verified with a real pino instance, 2026-07-25). Message
+        // must travel inside the object as `msg` when context is also passed.
+        logger.error({ err, msg: 'Error during shutdown' }, LogContext.LIFECYCLE)
         process.exit(1)
       })
   }

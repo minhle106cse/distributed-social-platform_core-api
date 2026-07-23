@@ -22,6 +22,8 @@ describe('ProvisionOrgHandler', () => {
 
     mockLogger = {
       error: jest.fn(),
+      warn: jest.fn(),
+      info: jest.fn(),
     } as unknown as jest.Mocked<PinoLogger>
 
     handler = new ProvisionOrgHandler(mockAuthClient, mockCommandBus, mockLogger)
@@ -34,7 +36,7 @@ describe('ProvisionOrgHandler', () => {
     })
     mockCommandBus.execute.mockResolvedValueOnce('org-1')
 
-    const command = new ProvisionOrgCommand('Acme', 'acme', 'owner@acme.com')
+    const command = new ProvisionOrgCommand('Acme', 'acme', 'owner@acme.com', 'admin-1')
     const result = await handler.execute(command)
 
     expect(mockAuthClient.provisionUser).toHaveBeenCalledWith('owner@acme.com')
@@ -54,7 +56,7 @@ describe('ProvisionOrgHandler', () => {
     mockCommandBus.execute.mockRejectedValueOnce(orgCreationError)
     mockAuthClient.cancelProvisionedUser.mockResolvedValueOnce(undefined as never)
 
-    const command = new ProvisionOrgCommand('Acme', 'acme', 'owner@acme.com')
+    const command = new ProvisionOrgCommand('Acme', 'acme', 'owner@acme.com', 'admin-1')
 
     await expect(handler.execute(command)).rejects.toThrow(orgCreationError)
     expect(mockAuthClient.cancelProvisionedUser).toHaveBeenCalledWith('user-1')
@@ -69,7 +71,7 @@ describe('ProvisionOrgHandler', () => {
     mockCommandBus.execute.mockRejectedValueOnce(orgCreationError)
     mockAuthClient.cancelProvisionedUser.mockRejectedValueOnce(new Error('grpc unavailable'))
 
-    const command = new ProvisionOrgCommand('Acme', 'acme', 'owner@acme.com')
+    const command = new ProvisionOrgCommand('Acme', 'acme', 'owner@acme.com', 'admin-1')
 
     await expect(handler.execute(command)).rejects.toThrow(orgCreationError)
     expect(mockLogger.error).toHaveBeenCalled()

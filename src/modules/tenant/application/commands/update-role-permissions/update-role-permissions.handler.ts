@@ -1,10 +1,11 @@
 import { Injectable, Inject } from '@nestjs/common'
+import { InjectPinoLogger, PinoLogger } from 'nestjs-pino'
 import type { ICommandHandler } from '@distributed-social-platform/shared-kernel'
 import { CommandHandler } from '@/infrastructure/cqrs/decorators/command-handler.decorator'
 import { ORG_ROLE_PERMISSION_REPOSITORY } from '@/modules/tenant/domain/repositories/org-role-permission.repository'
 import type { IOrgRolePermissionRepository } from '@/modules/tenant/domain/repositories/org-role-permission.repository'
 import { OrgRole } from '@/modules/tenant/domain/org-rbac'
-import { isValidOrgPermission } from '@distributed-social-platform/shared-kernel'
+import { isValidOrgPermission, logAudit } from '@distributed-social-platform/shared-kernel'
 import {
   CannotModifyOwnerPermissionsError,
   InvalidOrgPermissionError,
@@ -16,6 +17,7 @@ import { UpdateRolePermissionsCommand } from './update-role-permissions.command'
 export class UpdateRolePermissionsHandler implements ICommandHandler<UpdateRolePermissionsCommand> {
   constructor(
     @Inject(ORG_ROLE_PERMISSION_REPOSITORY) private readonly repo: IOrgRolePermissionRepository,
+    @InjectPinoLogger(UpdateRolePermissionsHandler.name) private readonly logger: PinoLogger,
   ) {}
 
   async execute(command: UpdateRolePermissionsCommand): Promise<void> {
@@ -29,5 +31,14 @@ export class UpdateRolePermissionsHandler implements ICommandHandler<UpdateRoleP
     }
 
     await this.repo.replaceForRole(command.orgId, command.role, unique)
+
+    // Privilege-escalation vector — a role's permission SET changing affects
+    // every member holding that role, not just one target user.
+    logAudit(this.logger, {
+      action: 'org.role_permissions_updated',
+      outcome: 'success',
+      actorUserId: command.actorUserId,
+      metadata: { orgId: command.orgId, role: command.role, permissions: unique },
+    })
   }
 }

@@ -13,5 +13,6 @@ export class UpdateRolePermissionsCommand implements ICommand {
     public readonly orgId: string,
     public readonly role: OrgRole,
     public readonly permissions: string[],
+    public readonly actorUserId: string,
   ) {}
 }

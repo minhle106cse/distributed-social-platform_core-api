@@ -2,7 +2,10 @@ import { Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino'
 import * as grpc from '@grpc/grpc-js'
-import { MembershipVerificationService } from '@distributed-social-platform/shared-kernel'
+import {
+  LogContext,
+  MembershipVerificationService,
+} from '@distributed-social-platform/shared-kernel'
 import { MembershipVerificationGrpcService } from '@/infrastructure/grpc/membership-verification.grpc-service'
 
 /**
@@ -29,10 +32,13 @@ export class GrpcServerBootstrap {
       grpc.ServerCredentials.createInsecure(),
       (err, boundPort) => {
         if (err) {
-          this.logger.error({ err }, 'Failed to start gRPC server')
+          this.logger.error({ context: LogContext.GRPC, err }, 'Failed to start gRPC server')
           return
         }
-        this.logger.info(`🔌 gRPC (MembershipVerification) listening on port ${boundPort}`)
+        this.logger.info(
+          { context: LogContext.GRPC },
+          `🔌 gRPC (MembershipVerification) listening on port ${boundPort}`,
+        )
       },
     )
 

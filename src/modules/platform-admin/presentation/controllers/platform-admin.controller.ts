@@ -11,6 +11,8 @@ import {
 import { Throttle } from '@nestjs/throttler'
 import { CommandBus, QueryBus, SystemPermission } from '@distributed-social-platform/shared-kernel'
 import { JwtAuthGuard } from '@/infrastructure/http/guards/jwt-auth.guard'
+import type { JwtPayload } from '@/infrastructure/http/guards/jwt-auth.guard'
+import { CurrentUser } from '@/infrastructure/http/decorators/current-user.decorator'
 import { SystemPermissionGuard } from '@/infrastructure/http/guards/system-permission.guard'
 import { RequireSystemPermission } from '@/infrastructure/http/decorators/require-system-permission.decorator'
 import { ZodValidationPipe } from '@/infrastructure/http/pipes/zod-validation.pipe'
@@ -53,10 +55,11 @@ export class PlatformAdminController {
   @UseInterceptors(IdempotencyInterceptor)
   @Throttle({ default: { ttl: 60_000, limit: 10 } })
   async provisionOrg(
+    @CurrentUser() user: JwtPayload,
     @Body(new ZodValidationPipe(ProvisionOrgSchema)) body: ProvisionOrgDto,
   ): Promise<ProvisionOrgResult> {
     return this.commandBus.execute<ProvisionOrgCommand, ProvisionOrgResult>(
-      new ProvisionOrgCommand(body.orgName, body.slug, body.ownerEmail),
+      new ProvisionOrgCommand(body.orgName, body.slug, body.ownerEmail, user.sub),
     )
   }
 

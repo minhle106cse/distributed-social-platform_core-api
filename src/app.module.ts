@@ -1,6 +1,7 @@
 import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common'
 import { HealthController } from './infrastructure/http/controllers/health.controller'
 import { TenantContextMiddleware } from './infrastructure/http/middlewares/tenant-context.middleware'
+import { TraceContextMiddleware } from './infrastructure/http/middlewares/trace-context.middleware'
 import { HttpLoggingInterceptor } from './infrastructure/http/interceptors/http-logging.interceptor'
 import { ResponseInterceptor } from './infrastructure/http/interceptors/response.interceptor'
 import { GlobalExceptionFilter } from './infrastructure/http/filter/global-exception.filter'
@@ -82,11 +83,15 @@ import { CreditModule } from './modules/credit/credit.module'
       useClass: GlobalExceptionFilter,
     },
     TenantContextMiddleware,
+    TraceContextMiddleware,
   ],
 })
 export class AppModule implements NestModule {
   // Mở tenant context (AsyncLocalStorage) cho mọi request, sớm nhất có thể.
+  // TraceContextMiddleware chạy TRƯỚC TenantContextMiddleware — trace context
+  // không phụ thuộc gì vào tenant, và nên bọc ngoài cùng để mọi log (kể cả
+  // log lỗi trong chính tenant middleware) đều có trace_id/span_id.
   configure(consumer: MiddlewareConsumer): void {
-    consumer.apply(TenantContextMiddleware).forRoutes('*')
+    consumer.apply(TraceContextMiddleware, TenantContextMiddleware).forRoutes('*')
   }
 }

@@ -5,6 +5,8 @@ import {
   AuthProvisioningClient as GeneratedAuthProvisioningClient,
   type AuthProvisioningClient as IGeneratedAuthProvisioningClient,
   attachInternalGrpcSecret,
+  attachTraceparent,
+  getCurrentTraceparent,
 } from '@distributed-social-platform/shared-kernel'
 import {
   OwnerEmailAlreadyExistsError,
@@ -58,7 +60,8 @@ export class AuthProvisioningClient implements OnModuleDestroy {
   }
 
   private metadata(): grpc.Metadata {
-    return attachInternalGrpcSecret(new grpc.Metadata(), this.sharedSecret)
+    const metadata = attachInternalGrpcSecret(new grpc.Metadata(), this.sharedSecret)
+    return attachTraceparent(metadata, getCurrentTraceparent())
   }
 
   private deadlineOptions(): grpc.CallOptions {

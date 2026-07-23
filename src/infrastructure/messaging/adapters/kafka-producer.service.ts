@@ -2,6 +2,7 @@ import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common'
 import { Producer } from 'kafkajs'
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino'
 import {
+  LogContext,
   Transport,
   topicForEventType,
   type CloudEvent,
@@ -31,12 +32,12 @@ export class KafkaProducerService implements ITransportPublisher, OnModuleInit, 
 
   async onModuleInit(): Promise<void> {
     await this.producer.connect()
-    this.logger.info('Kafka producer connected')
+    this.logger.info({ context: LogContext.OUTBOX }, 'Kafka producer connected')
   }
 
   async onModuleDestroy(): Promise<void> {
     await this.producer.disconnect()
-    this.logger.info('Kafka producer disconnected')
+    this.logger.info({ context: LogContext.OUTBOX }, 'Kafka producer disconnected')
   }
 
   // Topic + partition key are Kafka concerns, derived here from the CloudEvent —

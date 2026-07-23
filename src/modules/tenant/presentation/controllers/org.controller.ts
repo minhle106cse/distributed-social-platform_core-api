@@ -84,11 +84,14 @@ export class OrgController {
   @UseGuards(OrgGuard)
   @RequireOrgPermission(OrgPermission.ORG_MANAGE_MEMBERS)
   async updateMemberRole(
+    @CurrentUser() user: JwtPayload,
     @Param('userId') targetUserId: string,
     @CurrentOrg() org: OrgContext,
     @Body(new ZodValidationPipe(UpdateMemberRoleSchema)) body: UpdateMemberRoleDto,
   ) {
-    await this.commandBus.execute(new UpdateMemberRoleCommand(org.orgId, targetUserId, body.role))
+    await this.commandBus.execute(
+      new UpdateMemberRoleCommand(org.orgId, targetUserId, body.role, user.sub),
+    )
   }
 
   // Idempotent via X-Idempotency-Key — no unique constraint stops a retried
@@ -153,6 +156,7 @@ export class OrgController {
   @UseGuards(OrgGuard)
   @RequireOrgPermission(OrgPermission.ORG_MANAGE_ROLES)
   async updateRolePermissions(
+    @CurrentUser() user: JwtPayload,
     @Param('role') role: string,
     @CurrentOrg() org: OrgContext,
     @Body(new ZodValidationPipe(UpdateRolePermissionsSchema)) body: UpdateRolePermissionsDto,
@@ -160,7 +164,7 @@ export class OrgController {
     // OWNER bị loại khỏi enum → param OWNER sẽ 400 ở đây (cũng được handler chặn lần nữa)
     const parsedRole = ManageableOrgRoleSchema.parse(role)
     await this.commandBus.execute(
-      new UpdateRolePermissionsCommand(org.orgId, parsedRole, body.permissions),
+      new UpdateRolePermissionsCommand(org.orgId, parsedRole, body.permissions, user.sub),
     )
   }
 }

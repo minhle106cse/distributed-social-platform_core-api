@@ -1,5 +1,10 @@
 import { Injectable } from '@nestjs/common'
-import { CommandBus, type ICommandHandler } from '@distributed-social-platform/shared-kernel'
+import {
+  CommandBus,
+  LogContext,
+  logAudit,
+  type ICommandHandler,
+} from '@distributed-social-platform/shared-kernel'
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino'
 import { CommandHandler } from '@/infrastructure/cqrs/decorators/command-handler.decorator'
 import { AuthProvisioningClient } from '@/infrastructure/grpc/auth-provisioning.client'
@@ -37,6 +42,15 @@ export class ProvisionOrgHandler implements ICommandHandler<
       const orgId = await this.commandBus.execute<CreateOrgCommand, string>(
         new CreateOrgCommand(command.orgName, command.slug, userId),
       )
+      // Highest blast-radius mutation in the system (own comment on
+      // ProvisionOrgCommand) — real cross-service account creation, always audited.
+      logAudit(this.logger, {
+        action: 'platform.org_provisioned',
+        outcome: 'success',
+        actorUserId: command.actorUserId,
+        targetUserId: userId,
+        metadata: { orgId, orgName: command.orgName, slug: command.slug },
+      })
       return { orgId, ownerUserId: userId, temporaryPassword }
     } catch (err) {
       // Compensate: undo step 1. Best-effort — a secondary failure here must
@@ -46,10 +60,17 @@ export class ProvisionOrgHandler implements ICommandHandler<
         await this.authProvisioningClient.cancelProvisionedUser(userId)
       } catch (compensationErr) {
         this.logger.error(
-          { userId, compensationErr },
+          { context: LogContext.COMMAND_BUS, userId, compensationErr },
           'Failed to compensate (cancel provisioned user) after org creation failure — manual cleanup needed',
         )
       }
+      logAudit(this.logger, {
+        action: 'platform.org_provisioned',
+        outcome: 'failure',
+        actorUserId: command.actorUserId,
+        targetUserId: userId,
+        metadata: { orgName: command.orgName, slug: command.slug },
+      })
       throw err
     }
   }

@@ -21,5 +21,6 @@ export class ProvisionOrgCommand implements ICommand {
     public readonly orgName: string,
     public readonly slug: string,
     public readonly ownerEmail: string,
+    public readonly actorUserId: string,
   ) {}
 }

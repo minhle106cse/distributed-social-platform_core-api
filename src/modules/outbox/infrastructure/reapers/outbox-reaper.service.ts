@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { Interval } from '@nestjs/schedule'
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino'
+import { LogContext } from '@distributed-social-platform/shared-kernel'
 import {
   OUTBOX_REPOSITORY,
   type IOutboxRepository,
@@ -39,7 +40,10 @@ export class OutboxReaperService {
     try {
       const reaped = await this.outboxRepo.reapStaleInflight(this.claimTimeoutMs)
       if (reaped > 0) {
-        this.logger.warn({ reaped }, 'Reaped stale INFLIGHT outbox rows back to PENDING')
+        this.logger.warn(
+          { context: LogContext.OUTBOX, reaped },
+          'Reaped stale INFLIGHT outbox rows back to PENDING',
+        )
       }
     } finally {
       this.reaping = false

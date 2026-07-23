@@ -6,6 +6,7 @@ import {
   type MembershipVerificationServer,
   verifyInternalGrpcSecret,
   QueryBus,
+  LogContext,
 } from '@distributed-social-platform/shared-kernel'
 import { CheckMembershipQuery } from '@/modules/tenant/application/queries/check-membership/check-membership.query'
 import type { CheckMembershipResult } from '@/modules/tenant/application/queries/check-membership/check-membership.handler'
@@ -51,6 +52,14 @@ export class MembershipVerificationGrpcService implements MembershipVerification
   checkMembership: MembershipVerificationServer['checkMembership'] = (call, callback) => {
     void (async () => {
       if (!verifyInternalGrpcSecret(call, this.#internalGrpcSharedSecret)) {
+        // Security-relevant rejection — previously silent (2026-07-25 gateway
+        // audit found this). Unlike HTTP (every 401/403 logged at the boundary
+        // interceptor via status tier), gRPC has no equivalent catch-all, so
+        // this branch must log itself or leave zero trace of a rejected call.
+        this.#logger.warn(
+          { context: LogContext.GRPC },
+          'CheckMembership gRPC call rejected — invalid internal secret',
+        )
         callback({ code: grpc.status.UNAUTHENTICATED, message: 'Invalid internal secret' })
         return
       }
@@ -60,9 +69,16 @@ export class MembershipVerificationGrpcService implements MembershipVerification
         const result = await this.#queryBus.execute<CheckMembershipQuery, CheckMembershipResult>(
           new CheckMembershipQuery(orgId, userId),
         )
+        // Mirrors the HTTP boundary logging every request (success + error),
+        // not just errors — gRPC boundary previously logged failures only,
+        // an asymmetry vs HTTP/Kafka boundary logging (audit 2026-07-22).
+        this.#logger.info(
+          { context: LogContext.GRPC, orgId, isMember: result.isMember },
+          'CheckMembership gRPC call succeeded',
+        )
         callback(null, result)
       } catch (err) {
-        this.#logger.error({ err }, 'CheckMembership gRPC call failed')
+        this.#logger.error({ context: LogContext.GRPC, err }, 'CheckMembership gRPC call failed')
         callback({ code: grpc.status.INTERNAL, message: 'Failed to check membership' })
       }
     })()

@@ -1,7 +1,5 @@
-import { Inject, Injectable } from '@nestjs/common'
 import { ALL_ORG_PERMISSIONS } from '@distributed-social-platform/shared-kernel'
 import { OrgRole } from '../org-rbac'
-import { ORG_ROLE_PERMISSION_REPOSITORY } from '../repositories/org-role-permission.repository'
 import type { IOrgRolePermissionRepository } from '../repositories/org-role-permission.repository'
 
 // OWNER is implicit-all (no DB row needed) to prevent lock-out — every other
@@ -13,12 +11,16 @@ import type { IOrgRolePermissionRepository } from '../repositories/org-role-perm
 // SUPER_ADMIN/SystemPermission (see .ai/KNOWLEDGE_INDEX.md,
 // "super-admin-implicit-all-never-wired-into-jwt").
 // TODO(Phase 3): cache kết quả vào Redis (key org_perms:{orgId}:{role}, TTL 5') + invalidate khi update.
-@Injectable()
+//
+// Deliberately framework-agnostic (2026-07-25 fix) — this is Domain layer,
+// so it must not import @nestjs/common. Was the ONLY file under any
+// `domain/` folder in this service doing so (verified via repo-wide grep).
+// NestJS wiring lives at the composition root (tenant.module.ts) via
+// useFactory/inject, same pattern already used for shared-kernel's
+// QueryBus/EventBus/LoggingMiddleware/RetryMiddleware/TransactionMiddleware
+// (infrastructure/cqrs/cqrs.module.ts) — not a new pattern invented here.
 export class OrgPermissionResolver {
-  constructor(
-    @Inject(ORG_ROLE_PERMISSION_REPOSITORY)
-    private readonly rolePermissionRepo: IOrgRolePermissionRepository,
-  ) {}
+  constructor(private readonly rolePermissionRepo: IOrgRolePermissionRepository) {}
 
   async resolve(orgId: string, role: OrgRole): Promise<string[]> {
     if (role === OrgRole.OWNER) return [...ALL_ORG_PERMISSIONS]

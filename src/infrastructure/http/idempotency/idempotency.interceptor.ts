@@ -8,8 +8,10 @@ import {
 } from '@nestjs/common'
 import { createHash } from 'crypto'
 import type { FastifyRequest } from 'fastify'
+import { InjectPinoLogger, PinoLogger } from 'nestjs-pino'
 import { Observable, from, of, throwError } from 'rxjs'
 import { catchError, switchMap, tap } from 'rxjs/operators'
+import { LogContext } from '@distributed-social-platform/shared-kernel'
 import { Prisma } from '@/generated'
 import { PrismaService } from '@/infrastructure/database/prisma/prisma.service'
 
@@ -52,7 +54,10 @@ function hashRequest(method: string, url: string, body: unknown): string {
  */
 @Injectable()
 export class IdempotencyInterceptor implements NestInterceptor {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @InjectPinoLogger(IdempotencyInterceptor.name) private readonly logger: PinoLogger,
+  ) {}
 
   async intercept(context: ExecutionContext, next: CallHandler): Promise<Observable<unknown>> {
     const req = context.switchToHttp().getRequest<FastifyRequest>()
@@ -100,11 +105,28 @@ export class IdempotencyInterceptor implements NestInterceptor {
       tap((response) => {
         this.prisma.client.idempotencyRecord
           .update({ where: { key }, data: { response: response as Prisma.InputJsonValue } })
-          .catch((err: unknown) => req.log.error({ err }, 'Failed to persist idempotency response'))
+          .catch((err: unknown) =>
+            this.logger.error(
+              { context: LogContext.IDEMPOTENCY, err, key },
+              'Failed to persist idempotency response',
+            ),
+          )
       }),
       catchError((err: unknown) =>
         from(
-          this.prisma.client.idempotencyRecord.delete({ where: { key } }).catch(() => undefined),
+          this.prisma.client.idempotencyRecord
+            .delete({ where: { key } })
+            .catch((deleteErr: unknown) => {
+              // If THIS delete fails, the claim row (response: null) is stuck for
+              // up to 24h TTL, silently blocking a legitimate retry with the same
+              // key — previously swallowed with zero trace (2026-07-25 gateway
+              // audit). The original handler error (`err`) still propagates below
+              // either way; this only adds visibility into the cleanup failure.
+              this.logger.error(
+                { context: LogContext.IDEMPOTENCY, key, err: deleteErr },
+                'Failed to delete idempotency claim row after handler failure — stuck until TTL expiry',
+              )
+            }),
         ).pipe(switchMap(() => throwError(() => err))),
       ),
     )

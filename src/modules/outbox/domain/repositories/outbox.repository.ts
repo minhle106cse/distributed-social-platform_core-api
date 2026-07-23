@@ -15,6 +15,7 @@ export interface ClaimedOutboxEvent {
   payload: unknown
   attempts: number
   createdAt: Date
+  traceparent: string | null
 }
 
 export interface IOutboxRepository {

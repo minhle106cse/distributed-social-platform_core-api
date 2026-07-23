@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { Prisma } from '@/generated'
 import { PrismaService } from '@/infrastructure/database/prisma/prisma.service'
-import { getTx } from '@distributed-social-platform/shared-kernel'
+import { getTx, getCurrentTraceparent } from '@distributed-social-platform/shared-kernel'
 import type {
   ClaimedOutboxEvent,
   IOutboxRepository,
@@ -24,6 +24,10 @@ export class PrismaOutboxRepository implements IOutboxRepository {
         eventType: input.eventType,
         orgId: input.orgId,
         payload: input.payload as Prisma.InputJsonValue,
+        // Captured from ALS, not the caller — every command handler already
+        // runs inside the trace context established at the HTTP entry point,
+        // so no call site needs to thread this through explicitly.
+        traceparent: getCurrentTraceparent() ?? null,
       },
     })
   }
@@ -61,6 +65,7 @@ export class PrismaOutboxRepository implements IOutboxRepository {
       payload: r.payload,
       attempts: r.attempts,
       createdAt: r.createdAt,
+      traceparent: r.traceparent,
     }))
   }
 
