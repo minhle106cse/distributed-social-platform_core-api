@@ -22,18 +22,18 @@ export class PrismaFollowRepository implements IFollowRepository {
       where: {
         userId_targetType_targetId: {
           userId: follow.userId,
-          targetType: follow.targetType as never,
+          targetType: follow.targetType,
           targetId: follow.targetId,
         },
       },
-      create: { ...data, targetType: data.targetType as never },
+      create: data,
       update: {},
     })
   }
 
   async remove(userId: string, targetType: FollowTargetType, targetId: string): Promise<void> {
     await this.client.follow.deleteMany({
-      where: { userId, targetType: targetType as never, targetId, orgId: requireTenantId() },
+      where: { userId, targetType, targetId, orgId: requireTenantId() },
     })
   }
 }

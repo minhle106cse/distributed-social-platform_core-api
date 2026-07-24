@@ -5,12 +5,13 @@ type PrismaKnowledgeItem = {
   id: string
   orgId: string
   spaceId: string
-  type: string
+  // Domain-owned types, not @/generated — mapper stays the isolation boundary.
+  type: KnowledgeType
   title: string
   body: string
   parentId: string | null
   acceptedAnswerId: string | null
-  status: string
+  status: KnowledgeStatus
   isVerified: boolean
   version: number
   contentHash: string | null
@@ -27,12 +28,12 @@ export class KnowledgeItemMapper {
       id: row.id,
       orgId: row.orgId,
       spaceId: row.spaceId,
-      type: row.type as KnowledgeType,
+      type: row.type,
       title: row.title,
       body: row.body,
       parentId: row.parentId,
       acceptedAnswerId: row.acceptedAnswerId,
-      status: row.status as KnowledgeStatus,
+      status: row.status,
       isVerified: row.isVerified,
       version: row.version,
       createdByUserId: row.createdByUserId,

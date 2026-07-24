@@ -1,10 +1,13 @@
-import { Space, SpaceVisibility } from '../../domain/entities/space.entity'
+import { Space } from '../../domain/entities/space.entity'
+import type { SpaceVisibility } from '../../domain/entities/space.entity'
 
 type PrismaSpace = {
   id: string
   orgId: string
   name: string
-  visibility: string
+  // Domain-owned type, not @/generated — mapper stays the isolation boundary
+  // so domain never depends on Prisma directly (matches membership/org-invite.mapper.ts).
+  visibility: SpaceVisibility
   deletedAt: Date | null
 }
 
@@ -14,7 +17,7 @@ export class SpaceMapper {
       id: row.id,
       orgId: row.orgId,
       name: row.name,
-      visibility: row.visibility as SpaceVisibility,
+      visibility: row.visibility,
       deletedAt: row.deletedAt,
     })
   }

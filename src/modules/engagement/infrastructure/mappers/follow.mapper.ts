@@ -5,7 +5,8 @@ type PrismaFollow = {
   id: string
   orgId: string
   userId: string
-  targetType: string
+  // Domain-owned type, not @/generated — mapper stays the isolation boundary.
+  targetType: FollowTargetType
   targetId: string
   createdAt: Date
 }
@@ -16,7 +17,7 @@ export class FollowMapper {
       id: row.id,
       orgId: row.orgId,
       userId: row.userId,
-      targetType: row.targetType as FollowTargetType,
+      targetType: row.targetType,
       targetId: row.targetId,
       createdAt: row.createdAt,
     })
