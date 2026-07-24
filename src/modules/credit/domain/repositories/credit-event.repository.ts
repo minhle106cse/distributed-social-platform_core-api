@@ -1,4 +1,4 @@
-import type { CreditAccount } from '../aggregates/credit-account.aggregate'
+import type { CreditAccount } from '../entities/credit-account.aggregate'
 
 export interface ICreditEventRepository {
   // Load a wallet by folding its event stream. Returns an empty wallet (version 0)

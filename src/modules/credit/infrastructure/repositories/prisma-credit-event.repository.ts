@@ -2,14 +2,11 @@ import { Injectable } from '@nestjs/common'
 import { getTx } from '@distributed-social-platform/shared-kernel'
 import { Prisma } from '@/generated'
 import { PrismaService } from '@/infrastructure/database/prisma/prisma.service'
-import { CreditAccount } from '../../domain/aggregates/credit-account.aggregate'
-import type {
-  CreditEventType,
-  CreditEventPayload,
-  CreditLedgerEvent,
-} from '../../domain/aggregates/credit-account.aggregate'
+import { CreditAccount } from '../../domain/entities/credit-account.aggregate'
+import type { CreditLedgerEvent } from '../../domain/entities/credit-account.aggregate'
 import type { ICreditEventRepository } from '../../domain/repositories/credit-event.repository'
 import { CreditConcurrencyError } from '../../domain/credit.errors'
+import { CreditEventMapper } from '../mappers/credit-event.mapper'
 
 @Injectable()
 export class PrismaCreditEventRepository implements ICreditEventRepository {
@@ -27,14 +24,7 @@ export class PrismaCreditEventRepository implements ICreditEventRepository {
     })
 
     // Trust on read: rows were validated by the aggregate + DB constraints on write.
-    const events: CreditLedgerEvent[] = rows.map((row) => ({
-      aggregateId: row.aggregateId,
-      orgId: row.orgId,
-      userId: row.userId ?? userId,
-      eventType: row.eventType as CreditEventType,
-      version: row.version,
-      payload: row.payload as unknown as CreditEventPayload,
-    }))
+    const events: CreditLedgerEvent[] = rows.map((row) => CreditEventMapper.toDomain(row))
 
     return CreditAccount.rehydrate(orgId, userId, events)
   }
@@ -45,14 +35,7 @@ export class PrismaCreditEventRepository implements ICreditEventRepository {
 
     try {
       await this.client.creditEvent.createMany({
-        data: events.map((event) => ({
-          aggregateId: event.aggregateId,
-          orgId: event.orgId,
-          userId: event.userId,
-          eventType: event.eventType,
-          version: event.version,
-          payload: event.payload as unknown as Prisma.InputJsonValue,
-        })),
+        data: events.map((event) => CreditEventMapper.toPersistence(event)),
       })
     } catch (err) {
       // P2002 on @@unique([aggregateId, version]) = another writer claimed this version.

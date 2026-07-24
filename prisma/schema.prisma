@@ -240,7 +240,7 @@ model CreditEvent {
   version     Int                              // per-aggregate sequence for OCC
   payload     Json
   orgId       String   @map("org_id")          // denormalized from aggregateId for tenant-safe query/audit
-  userId      String?  @map("user_id")
+  userId      String   @map("user_id")         // denormalized from aggregateId; save() always sets it — NOT NULL so read-side can trust it, no fallback needed
   createdAt   DateTime @default(now()) @map("created_at")
 
   @@unique([aggregateId, version])

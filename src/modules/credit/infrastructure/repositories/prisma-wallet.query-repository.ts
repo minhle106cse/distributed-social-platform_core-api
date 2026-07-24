@@ -1,13 +1,9 @@
 import { Injectable } from '@nestjs/common'
 import { PrismaService } from '@/infrastructure/database/prisma/prisma.service'
-import { CreditAccount } from '../../domain/aggregates/credit-account.aggregate'
+import { CreditAccount } from '../../domain/entities/credit-account.aggregate'
 import type { IWalletQueryRepository } from '../../application/queries/wallet.query-repository'
 import type { WalletDto, WalletLedgerEntryDto } from '../../application/queries/wallet.dto'
-
-interface StoredPayload {
-  amount: number
-  reason: string
-}
+import { CreditEventMapper } from '../mappers/credit-event.mapper'
 
 @Injectable()
 export class PrismaWalletQueryRepository implements IWalletQueryRepository {
@@ -26,7 +22,7 @@ export class PrismaWalletQueryRepository implements IWalletQueryRepository {
     let totalRefunded = 0
 
     for (const row of rows) {
-      const { amount } = row.payload as unknown as StoredPayload
+      const { amount } = CreditEventMapper.decodePayload(row.payload)
       switch (row.eventType) {
         case 'CreditGranted':
           balance += amount
@@ -48,7 +44,7 @@ export class PrismaWalletQueryRepository implements IWalletQueryRepository {
       .slice(-recentLimit)
       .reverse()
       .map((row) => {
-        const { amount, reason } = row.payload as unknown as StoredPayload
+        const { amount, reason } = CreditEventMapper.decodePayload(row.payload)
         return {
           eventType: row.eventType,
           delta: row.eventType === 'CreditSpent' ? -amount : amount,
