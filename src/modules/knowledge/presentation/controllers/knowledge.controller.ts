@@ -34,6 +34,8 @@ import { CreateKnowledgeSchema } from '../schemas/create-knowledge.schema'
 import type { CreateKnowledgeDto } from '../schemas/create-knowledge.schema'
 import { UpdateKnowledgeSchema } from '../schemas/update-knowledge.schema'
 import type { UpdateKnowledgeDto } from '../schemas/update-knowledge.schema'
+import { ListKnowledgeItemsSchema } from '../schemas/list-knowledge-items.schema'
+import type { ListKnowledgeItemsDto } from '../schemas/list-knowledge-items.schema'
 
 @Controller()
 @UseGuards(JwtAuthGuard)
@@ -84,16 +86,10 @@ export class KnowledgeController {
   @RequireOrgPermission(OrgPermission.KNOWLEDGE_READ)
   async list(
     @CurrentOrg() org: OrgContext,
-    @Query('spaceId') spaceId?: string,
-    @Query('type') type?: string,
-    @Query('status') status?: string,
-    @Query('limit') limit?: string,
-    @Query('offset') offset?: string,
+    @Query(new ZodValidationPipe(ListKnowledgeItemsSchema)) q: ListKnowledgeItemsDto,
   ): Promise<unknown> {
-    const take = Math.min(parseInt(limit ?? '50', 10) || 50, 100)
-    const skip = parseInt(offset ?? '0', 10) || 0
     return this.queryBus.execute(
-      new ListKnowledgeItemsQuery(org.orgId, spaceId, type, status, take, skip),
+      new ListKnowledgeItemsQuery(org.orgId, q.spaceId, q.type, q.status, q.limit, q.offset),
     )
   }
 

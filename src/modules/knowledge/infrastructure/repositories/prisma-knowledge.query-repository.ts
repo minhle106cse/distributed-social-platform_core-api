@@ -6,6 +6,7 @@ import type {
   KnowledgeListItemDto,
   RevisionDto,
 } from '../../application/queries/knowledge.dto'
+import type { KnowledgeType, KnowledgeStatus } from '../../domain/entities/knowledge-item.entity'
 
 @Injectable()
 export class PrismaKnowledgeQueryRepository implements IKnowledgeQueryRepository {
@@ -38,8 +39,8 @@ export class PrismaKnowledgeQueryRepository implements IKnowledgeQueryRepository
   async findItems(filter: {
     orgId: string
     spaceId?: string
-    type?: string
-    status?: string
+    type?: KnowledgeType
+    status?: KnowledgeStatus
     limit: number
     offset: number
   }): Promise<KnowledgeListItemDto[]> {
@@ -47,8 +48,8 @@ export class PrismaKnowledgeQueryRepository implements IKnowledgeQueryRepository
       where: {
         orgId: filter.orgId,
         ...(filter.spaceId && { spaceId: filter.spaceId }),
-        ...(filter.type && { type: filter.type as never }),
-        ...(filter.status && { status: filter.status as never }),
+        ...(filter.type && { type: filter.type }),
+        ...(filter.status && { status: filter.status }),
       },
       orderBy: { updatedAt: 'desc' },
       take: filter.limit,
