@@ -5,6 +5,7 @@ import type {
 } from '@distributed-social-platform/shared-kernel'
 import type { PinoLogger } from 'nestjs-pino'
 import type { AuthProvisioningClient } from '@/infrastructure/grpc/auth-provisioning.client'
+import { OwnerEmailAlreadyExistsError } from '@/common/errors/platform-admin.error'
 import { ProvisionOrgHandler } from './provision-org.handler'
 import { ProvisionOrgCommand } from './provision-org.command'
 
@@ -141,5 +142,20 @@ describe('ProvisionOrgHandler', () => {
     // creation itself failed, so the org-archival compensation was never reached.
     expect(mockAuthClient.cancelProvisionedUser).not.toHaveBeenCalled()
     expect(compensations).toHaveLength(1)
+  })
+
+  it('nên ném OwnerEmailAlreadyExistsError và KHÔNG đăng ký compensation nào khi email đã tồn tại', async () => {
+    // Client trả về tagged outcome (không throw) — handler tự diễn giải, đúng
+    // layering như CreateOrgHandler/AcceptInviteHandler (2026-08-04).
+    mockAuthClient.provisionUser.mockResolvedValueOnce({ alreadyExists: true })
+
+    await expect(
+      handler.execute(new ProvisionOrgCommand('Acme', 'acme', 'owner@acme.com', 'admin-1'), ctx),
+    ).rejects.toThrow(OwnerEmailAlreadyExistsError)
+
+    // Thất bại ngay ở bước 1 — chưa có user nào được tạo, không có gì để undo.
+    expect(compensations).toHaveLength(0)
+    expect(dispatched).toHaveLength(0)
+    expect(mockAuthClient.cancelProvisionedUser).not.toHaveBeenCalled()
   })
 })

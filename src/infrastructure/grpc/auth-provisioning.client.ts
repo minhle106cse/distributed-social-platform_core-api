@@ -8,15 +8,21 @@ import {
   attachTraceparent,
   getCurrentTraceparent,
 } from '@distributed-social-platform/shared-kernel'
-import {
-  OwnerEmailAlreadyExistsError,
-  AuthProvisioningUnavailableError,
-} from '@/common/errors/platform-admin.error'
+import { AuthProvisioningUnavailableError } from '@/common/errors/platform-admin.error'
 import { AuthProvisioningGrpcCaller } from './auth-provisioning-grpc.caller'
 
 export interface ProvisionedOwner {
   userId: string
   temporaryPassword: string
+}
+
+/** Tagged, non-error outcome — the client stays in transport vocabulary and
+ * leaves deciding what "email taken" MEANS to the caller (same layering
+ * `CreateOrgHandler`/`AcceptInviteHandler` use for their own already-exists
+ * checks: infra returns data, the application-layer handler throws the
+ * ApplicationError). Untagged by `ProvisionOrgHandler`, not here. */
+export interface OwnerEmailAlreadyExists {
+  alreadyExists: true
 }
 
 const DEADLINE_MS = 5000
@@ -36,8 +42,18 @@ const DEADLINE_MS = 5000
  * breaker fails fast after repeated failures instead. Both methods inject the
  * SAME caller instance, so they share one breaker/state, matching the
  * pre-refactor behavior. `ALREADY_EXISTS` is a normal business outcome (not a
- * fault) so it's handled BEFORE the breaker sees it, same reasoning as the ES
- * 404-index-missing case.
+ * fault) so it's tagged and resolved (not rejected) INSIDE the caller-wrapped
+ * body, same reasoning as the ES 404-index-missing case — the breaker must
+ * never see it as a failure.
+ *
+ * 2026-08-04: this class used to throw `OwnerEmailAlreadyExistsError` itself
+ * for the ALREADY_EXISTS case — an application-level error thrown from an
+ * infra adapter, inconsistent with how every other "already exists" error in
+ * this codebase is thrown (`CreateOrgHandler`/`AcceptInviteHandler` throw
+ * from the application layer, after inspecting data the infra layer just
+ * returned). Fixed: `provisionUser` now returns the tagged
+ * `OwnerEmailAlreadyExists` union member instead of throwing it — deciding
+ * what that means is `ProvisionOrgHandler`'s job now.
  */
 @Injectable()
 export class AuthProvisioningClient implements OnModuleDestroy {
@@ -68,13 +84,16 @@ export class AuthProvisioningClient implements OnModuleDestroy {
     return { deadline: Date.now() + DEADLINE_MS }
   }
 
-  async provisionUser(email: string, idempotencyKey?: string): Promise<ProvisionedOwner> {
+  async provisionUser(
+    email: string,
+    idempotencyKey?: string,
+  ): Promise<ProvisionedOwner | OwnerEmailAlreadyExists> {
     // ALREADY_EXISTS resolves normally (tagged), never rejects, INSIDE the
     // caller-wrapped body — a business outcome must not trip the breaker the
-    // same way a dead auth-service would. Untagged below.
-    const result = await this.caller.call(
+    // same way a dead auth-service would.
+    return this.caller.call(
       () =>
-        new Promise<ProvisionedOwner | { alreadyExists: true }>((resolve, reject) => {
+        new Promise<ProvisionedOwner | OwnerEmailAlreadyExists>((resolve, reject) => {
           this.client.provisionUser(
             { email, idempotencyKey: idempotencyKey ?? '' },
             this.metadata(),
@@ -93,8 +112,6 @@ export class AuthProvisioningClient implements OnModuleDestroy {
           )
         }),
     )
-    if ('alreadyExists' in result) throw new OwnerEmailAlreadyExistsError()
-    return result
   }
 
   async cancelProvisionedUser(userId: string): Promise<boolean> {

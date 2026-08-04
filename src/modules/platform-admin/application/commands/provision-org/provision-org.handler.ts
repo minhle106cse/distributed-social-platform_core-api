@@ -8,6 +8,7 @@ import {
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino'
 import { CommandHandler } from '@/infrastructure/cqrs/decorators/command-handler.decorator'
 import { AuthProvisioningClient } from '@/infrastructure/grpc/auth-provisioning.client'
+import { OwnerEmailAlreadyExistsError } from '@/common/errors/platform-admin.error'
 import { CreateOrgCommand } from '@/modules/tenant/application/commands/create-org/create-org.command'
 import { ArchiveOrgCommand } from '@/modules/tenant/application/commands/archive-org/archive-org.command'
 import { ProvisionOrgCommand } from './provision-org.command'
@@ -51,10 +52,18 @@ export class ProvisionOrgHandler implements ISagaCommandHandler<
     // idempotencyKey threaded through so a genuine client retry recovers the
     // SAME user via auth-service's own record instead of orphaning a second
     // one (review of ADR-0001, 2026-07-30).
-    const { userId, temporaryPassword } = await this.authProvisioningClient.provisionUser(
+    const provisioned = await this.authProvisioningClient.provisionUser(
       command.ownerEmail,
       command.idempotencyKey,
     )
+    // Client stays in transport vocabulary (returns a tagged outcome, doesn't
+    // throw an application error itself) — same layering as
+    // CreateOrgHandler/AcceptInviteHandler's own already-exists checks
+    // (2026-08-04, review of the auth-provisioning DLQ/breaker audit). Thrown
+    // before anything is registered for compensation, so there is nothing to
+    // undo yet — no compensation runs for this branch.
+    if ('alreadyExists' in provisioned) throw new OwnerEmailAlreadyExistsError()
+    const { userId, temporaryPassword } = provisioned
     // Registered immediately after the side effect exists, so a failure in any
     // later step undoes it. A stray unverified user is a harmless orphan, but
     // leaving one behind is still a leak worth closing. Descriptor lets the
