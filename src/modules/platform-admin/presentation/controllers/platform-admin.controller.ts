@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   HttpCode,
   Post,
   Query,
@@ -57,9 +58,16 @@ export class PlatformAdminController {
   async provisionOrg(
     @CurrentUser() user: JwtPayload,
     @Body(new ZodValidationPipe(ProvisionOrgSchema)) body: ProvisionOrgDto,
+    // Threaded into the gRPC ProvisionUser call so a retry (same key) recovers
+    // the SAME provisioned user instead of orphaning a second one if the first
+    // response was lost after auth-service had already committed (review of
+    // ADR-0001, 2026-07-30). Optional at this layer — IdempotencyInterceptor
+    // above already no-ops without a key, so this degrades to today's
+    // best-effort behavior rather than rejecting the request.
+    @Headers('x-idempotency-key') idempotencyKey: string | undefined,
   ): Promise<ProvisionOrgResult> {
     return this.commandBus.execute<ProvisionOrgCommand, ProvisionOrgResult>(
-      new ProvisionOrgCommand(body.orgName, body.slug, body.ownerEmail, user.sub),
+      new ProvisionOrgCommand(body.orgName, body.slug, body.ownerEmail, user.sub, idempotencyKey),
     )
   }
 

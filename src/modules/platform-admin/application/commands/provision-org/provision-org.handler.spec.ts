@@ -1,14 +1,28 @@
-import { CommandBus } from '@distributed-social-platform/shared-kernel'
+import type {
+  ICommand,
+  SagaContext,
+  CompensationAction,
+} from '@distributed-social-platform/shared-kernel'
 import type { PinoLogger } from 'nestjs-pino'
 import type { AuthProvisioningClient } from '@/infrastructure/grpc/auth-provisioning.client'
 import { ProvisionOrgHandler } from './provision-org.handler'
 import { ProvisionOrgCommand } from './provision-org.command'
 
+/**
+ * Note what is NOT tested here any more: running compensations in reverse, and not
+ * letting a compensation failure mask the original error, are guarantees of
+ * CommandBus now (see command-bus.spec.ts) rather than of this handler. What
+ * remains is the handler's own job — WHAT it undoes, and when it registers that.
+ */
 describe('ProvisionOrgHandler', () => {
   let handler: ProvisionOrgHandler
   let mockAuthClient: jest.Mocked<AuthProvisioningClient>
-  let mockCommandBus: jest.Mocked<CommandBus>
   let mockLogger: jest.Mocked<PinoLogger>
+  let compensations: Array<() => Promise<void>>
+  let actions: CompensationAction[]
+  let dispatched: ICommand[]
+  let ctx: SagaContext
+  let dispatchResult: () => Promise<unknown>
 
   beforeEach(() => {
     mockAuthClient = {
@@ -16,64 +30,116 @@ describe('ProvisionOrgHandler', () => {
       cancelProvisionedUser: jest.fn(),
     } as unknown as jest.Mocked<AuthProvisioningClient>
 
-    mockCommandBus = {
-      execute: jest.fn(),
-    } as unknown as jest.Mocked<CommandBus>
-
     mockLogger = {
       error: jest.fn(),
       warn: jest.fn(),
       info: jest.fn(),
     } as unknown as jest.Mocked<PinoLogger>
 
-    handler = new ProvisionOrgHandler(mockAuthClient, mockCommandBus, mockLogger)
+    compensations = []
+    actions = []
+    dispatched = []
+    dispatchResult = () => Promise.resolve('org-1')
+    ctx = {
+      dispatch: ((command: ICommand) => {
+        dispatched.push(command)
+        return dispatchResult()
+      }) as SagaContext['dispatch'],
+      onCompensate: (action, undo) => {
+        actions.push(action)
+        compensations.push(undo)
+      },
+    }
+
+    handler = new ProvisionOrgHandler(mockAuthClient, mockLogger)
   })
 
-  it('should provision the owner then the org, returning the combined result', async () => {
+  it('should declare itself a saga that dispatches only transactional org commands (never auto-retried)', () => {
+    expect(handler.kind).toBe('saga')
+    expect(handler.dispatches).toEqual(['CreateOrgCommand', 'ArchiveOrgCommand'])
+  })
+
+  it('should provision the owner then dispatch org creation, returning the combined result', async () => {
     mockAuthClient.provisionUser.mockResolvedValueOnce({
       userId: 'user-1',
       temporaryPassword: 'temp-pass',
     })
-    mockCommandBus.execute.mockResolvedValueOnce('org-1')
 
     const command = new ProvisionOrgCommand('Acme', 'acme', 'owner@acme.com', 'admin-1')
-    const result = await handler.execute(command)
+    const result = await handler.execute(command, ctx)
 
-    expect(mockAuthClient.provisionUser).toHaveBeenCalledWith('owner@acme.com')
-    expect(mockCommandBus.execute).toHaveBeenCalledWith(
+    expect(mockAuthClient.provisionUser).toHaveBeenCalledWith('owner@acme.com', undefined)
+    expect(dispatched[0]).toEqual(
       expect.objectContaining({ orgName: 'Acme', slug: 'acme', ownerUserId: 'user-1' }),
     )
-    expect(result).toEqual({ orgId: 'org-1', ownerUserId: 'user-1', temporaryPassword: 'temp-pass' })
-    expect(mockAuthClient.cancelProvisionedUser).not.toHaveBeenCalled()
+    expect(result).toEqual({
+      orgId: 'org-1',
+      ownerUserId: 'user-1',
+      temporaryPassword: 'temp-pass',
+    })
   })
 
-  it('should compensate by cancelling the provisioned owner when org creation fails, and rethrow the original error', async () => {
+  it('should thread the command idempotencyKey through to provisionUser', async () => {
     mockAuthClient.provisionUser.mockResolvedValueOnce({
       userId: 'user-1',
       temporaryPassword: 'temp-pass',
     })
-    const orgCreationError = new Error('ORG_SLUG_ALREADY_TAKEN')
-    mockCommandBus.execute.mockRejectedValueOnce(orgCreationError)
-    mockAuthClient.cancelProvisionedUser.mockResolvedValueOnce(undefined as never)
 
-    const command = new ProvisionOrgCommand('Acme', 'acme', 'owner@acme.com', 'admin-1')
+    await handler.execute(
+      new ProvisionOrgCommand('Acme', 'acme', 'owner@acme.com', 'admin-1', 'idem-key-1'),
+      ctx,
+    )
 
-    await expect(handler.execute(command)).rejects.toThrow(orgCreationError)
+    expect(mockAuthClient.provisionUser).toHaveBeenCalledWith('owner@acme.com', 'idem-key-1')
+  })
+
+  it('should register the owner-cancellation compensation as soon as the owner exists', async () => {
+    mockAuthClient.provisionUser.mockResolvedValueOnce({
+      userId: 'user-1',
+      temporaryPassword: 'temp-pass',
+    })
+
+    await handler.execute(new ProvisionOrgCommand('Acme', 'acme', 'owner@acme.com', 'admin-1'), ctx)
+
+    // Registered even on the happy path — the bus only runs these if something fails.
+    expect(compensations).toHaveLength(2)
+    expect(actions[0]).toEqual({ type: 'cancel-provisioned-user', payload: { userId: 'user-1' } })
+    await compensations[0]()
     expect(mockAuthClient.cancelProvisionedUser).toHaveBeenCalledWith('user-1')
   })
 
-  it('should still rethrow the ORIGINAL error (not mask it) when the compensation call itself fails', async () => {
+  it('should register org-archival as soon as the org exists, dispatched through the bus (not a repo)', async () => {
+    mockAuthClient.provisionUser.mockResolvedValueOnce({
+      userId: 'user-1',
+      temporaryPassword: 'temp-pass',
+    })
+
+    await handler.execute(new ProvisionOrgCommand('Acme', 'acme', 'owner@acme.com', 'admin-1'), ctx)
+
+    expect(compensations).toHaveLength(2)
+    expect(actions[1]).toEqual({ type: 'archive-org', payload: { orgId: 'org-1' } })
+    dispatched.length = 0 // only care about what the compensation itself dispatches
+    await compensations[1]()
+    expect(dispatched).toHaveLength(1)
+    expect(dispatched[0]).toEqual(expect.objectContaining({ orgId: 'org-1' }))
+  })
+
+  it('should rethrow the original error when org creation fails, leaving compensation to the bus', async () => {
     mockAuthClient.provisionUser.mockResolvedValueOnce({
       userId: 'user-1',
       temporaryPassword: 'temp-pass',
     })
     const orgCreationError = new Error('ORG_SLUG_ALREADY_TAKEN')
-    mockCommandBus.execute.mockRejectedValueOnce(orgCreationError)
-    mockAuthClient.cancelProvisionedUser.mockRejectedValueOnce(new Error('grpc unavailable'))
+    dispatchResult = () => Promise.reject(orgCreationError)
 
-    const command = new ProvisionOrgCommand('Acme', 'acme', 'owner@acme.com', 'admin-1')
+    await expect(
+      handler.execute(new ProvisionOrgCommand('Acme', 'acme', 'owner@acme.com', 'admin-1'), ctx),
+    ).rejects.toThrow(orgCreationError)
 
-    await expect(handler.execute(command)).rejects.toThrow(orgCreationError)
-    expect(mockLogger.error).toHaveBeenCalled()
+    // The handler does NOT cancel directly — it registered the undo and the bus
+    // owns running it. Asserting that keeps the two from both doing it. Org
+    // creation itself failed, so the org-archival compensation was never reached.
+    expect(mockAuthClient.cancelProvisionedUser).not.toHaveBeenCalled()
+    expect(compensations).toHaveLength(1)
   })
 })

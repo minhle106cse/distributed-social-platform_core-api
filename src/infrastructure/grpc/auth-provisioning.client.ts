@@ -68,7 +68,7 @@ export class AuthProvisioningClient implements OnModuleDestroy {
     return { deadline: Date.now() + DEADLINE_MS }
   }
 
-  async provisionUser(email: string): Promise<ProvisionedOwner> {
+  async provisionUser(email: string, idempotencyKey?: string): Promise<ProvisionedOwner> {
     // ALREADY_EXISTS resolves normally (tagged), never rejects, INSIDE the
     // caller-wrapped body — a business outcome must not trip the breaker the
     // same way a dead auth-service would. Untagged below.
@@ -76,7 +76,7 @@ export class AuthProvisioningClient implements OnModuleDestroy {
       () =>
         new Promise<ProvisionedOwner | { alreadyExists: true }>((resolve, reject) => {
           this.client.provisionUser(
-            { email },
+            { email, idempotencyKey: idempotencyKey ?? '' },
             this.metadata(),
             this.deadlineOptions(),
             (err, response) => {

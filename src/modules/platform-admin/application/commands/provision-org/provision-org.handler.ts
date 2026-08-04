@@ -1,14 +1,15 @@
 import { Injectable } from '@nestjs/common'
 import {
-  CommandBus,
   LogContext,
   logAudit,
-  type ICommandHandler,
+  type ISagaCommandHandler,
+  type SagaContext,
 } from '@distributed-social-platform/shared-kernel'
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino'
 import { CommandHandler } from '@/infrastructure/cqrs/decorators/command-handler.decorator'
 import { AuthProvisioningClient } from '@/infrastructure/grpc/auth-provisioning.client'
 import { CreateOrgCommand } from '@/modules/tenant/application/commands/create-org/create-org.command'
+import { ArchiveOrgCommand } from '@/modules/tenant/application/commands/archive-org/archive-org.command'
 import { ProvisionOrgCommand } from './provision-org.command'
 
 export interface ProvisionOrgResult {
@@ -17,31 +18,71 @@ export interface ProvisionOrgResult {
   temporaryPassword: string
 }
 
+/**
+ * The one saga in the system: it creates a user in auth-service (another DB, over
+ * gRPC) and an org locally, which no single transaction can cover. Atomicity is
+ * therefore replaced by compensation.
+ *
+ * Two things that used to be hand-rolled here are now guarantees of the bus:
+ * running compensations in reverse, and never letting a compensation failure mask
+ * the original error. What is left is the domain-specific part — WHAT to undo —
+ * registered as a closure the moment the undoable thing exists, which is why
+ * `userId` is in scope for it at all (ADR-0001 §2.2).
+ *
+ * Being a saga is also what keeps it out of the retry path: re-running it blindly
+ * would provision a second owner account.
+ */
 @Injectable()
 @CommandHandler(ProvisionOrgCommand)
-export class ProvisionOrgHandler implements ICommandHandler<
+export class ProvisionOrgHandler implements ISagaCommandHandler<
   ProvisionOrgCommand,
   ProvisionOrgResult
 > {
+  readonly kind = 'saga' as const
+  readonly dispatches = [CreateOrgCommand.name, ArchiveOrgCommand.name]
+
   constructor(
     private readonly authProvisioningClient: AuthProvisioningClient,
-    private readonly commandBus: CommandBus,
     @InjectPinoLogger(ProvisionOrgHandler.name) private readonly logger: PinoLogger,
   ) {}
 
-  async execute(command: ProvisionOrgCommand): Promise<ProvisionOrgResult> {
+  async execute(command: ProvisionOrgCommand, ctx: SagaContext): Promise<ProvisionOrgResult> {
     // Step 1: provision the owner in auth-service (separate DB/service).
+    // idempotencyKey threaded through so a genuine client retry recovers the
+    // SAME user via auth-service's own record instead of orphaning a second
+    // one (review of ADR-0001, 2026-07-30).
     const { userId, temporaryPassword } = await this.authProvisioningClient.provisionUser(
       command.ownerEmail,
+      command.idempotencyKey,
     )
+    // Registered immediately after the side effect exists, so a failure in any
+    // later step undoes it. A stray unverified user is a harmless orphan, but
+    // leaving one behind is still a leak worth closing. Descriptor lets the
+    // reaper re-run this from durable storage if the closure itself fails on
+    // its first attempt (review of ADR-0001, 2026-07-30 — see
+    // SagaCompensationRegistry for where 'cancel-provisioned-user' resolves to).
+    ctx.onCompensate({ type: 'cancel-provisioned-user', payload: { userId } }, async () => {
+      await this.authProvisioningClient.cancelProvisionedUser(userId)
+    })
 
-    // Step 2: create the org + OWNER membership locally. Reuses CreateOrgHandler
-    // as-is — it doesn't care whether ownerUserId is the caller or a freshly
-    // provisioned user.
     try {
-      const orgId = await this.commandBus.execute<CreateOrgCommand, string>(
+      // Step 2: create the org + OWNER membership locally. Dispatched through the
+      // saga context — the only place a handler is allowed to send a command,
+      // precisely because a saga holds no transaction for it to nest inside.
+      const orgId = await ctx.dispatch<string>(
         new CreateOrgCommand(command.orgName, command.slug, userId),
       )
+      // Registered the instant the org exists, mirroring the owner-user
+      // compensation above. Without this, a failure between here and `return`
+      // (however unlikely) left the org committed with an OWNER membership
+      // pointing at a user the compensation above was about to cancel — an org
+      // nobody could administer (review of ADR-0001, 2026-07-30). Runs through
+      // `ctx.dispatch`, so it goes through the bus like any other command
+      // (retried on a transient DB error, logged, etc.) rather than reaching for
+      // a repository directly.
+      ctx.onCompensate({ type: 'archive-org', payload: { orgId } }, async () => {
+        await ctx.dispatch(new ArchiveOrgCommand(orgId))
+      })
       // Highest blast-radius mutation in the system (own comment on
       // ProvisionOrgCommand) — real cross-service account creation, always audited.
       logAudit(this.logger, {
@@ -53,17 +94,10 @@ export class ProvisionOrgHandler implements ICommandHandler<
       })
       return { orgId, ownerUserId: userId, temporaryPassword }
     } catch (err) {
-      // Compensate: undo step 1. Best-effort — a secondary failure here must
-      // not mask the original error the System Admin needs to see (e.g. slug
-      // taken); a stray unverified user is a harmless orphan, cleanable later.
-      try {
-        await this.authProvisioningClient.cancelProvisionedUser(userId)
-      } catch (compensationErr) {
-        this.logger.error(
-          { context: LogContext.COMMAND_BUS, userId, compensationErr },
-          'Failed to compensate (cancel provisioned user) after org creation failure — manual cleanup needed',
-        )
-      }
+      this.logger.warn(
+        { context: LogContext.COMMAND_BUS, userId, err },
+        'Org creation failed after owner was provisioned — compensating',
+      )
       logAudit(this.logger, {
         action: 'platform.org_provisioned',
         outcome: 'failure',
