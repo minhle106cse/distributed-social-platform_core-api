@@ -1,3 +1,4 @@
+import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
 import type { IKnowledgeItemRepository } from '@/modules/knowledge/domain/repositories/knowledge-item.repository'
 import { KnowledgeItem } from '@/modules/knowledge/domain/entities/knowledge-item.entity'
 import { KnowledgeItemNotFoundError } from '@/common/errors/knowledge.error'
@@ -10,6 +11,7 @@ jest.mock('uuid', () => ({
 
 describe('VerifyKnowledgeHandler', () => {
   let handler: VerifyKnowledgeHandler
+  let tx: CoreApiRepos
   let mockItemRepo: jest.Mocked<IKnowledgeItemRepository>
 
   beforeEach(() => {
@@ -20,15 +22,16 @@ describe('VerifyKnowledgeHandler', () => {
       update: jest.fn(),
     } as unknown as jest.Mocked<IKnowledgeItemRepository>
 
-    handler = new VerifyKnowledgeHandler(mockItemRepo)
+    handler = new VerifyKnowledgeHandler()
+    tx = { items: mockItemRepo } as unknown as CoreApiRepos
   })
 
   it('should throw KnowledgeItemNotFoundError when the item does not exist', async () => {
     mockItemRepo.findById.mockResolvedValueOnce(null)
 
-    await expect(handler.execute(new VerifyKnowledgeCommand('missing-id', 'verifier-1'))).rejects.toThrow(
-      KnowledgeItemNotFoundError,
-    )
+    await expect(
+      handler.execute(new VerifyKnowledgeCommand('missing-id', 'verifier-1'), tx),
+    ).rejects.toThrow(KnowledgeItemNotFoundError)
   })
 
   it('should mark the item verified, stamped with the verifier, and persist it', async () => {
@@ -42,7 +45,7 @@ describe('VerifyKnowledgeHandler', () => {
     })
     mockItemRepo.findById.mockResolvedValueOnce(item)
 
-    await handler.execute(new VerifyKnowledgeCommand('item-1', 'verifier-1'))
+    await handler.execute(new VerifyKnowledgeCommand('item-1', 'verifier-1'), tx)
 
     expect(item.isVerified).toBe(true)
     expect(item.updatedByUserId).toBe('verifier-1')

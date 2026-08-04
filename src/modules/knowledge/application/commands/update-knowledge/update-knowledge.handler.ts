@@ -1,11 +1,8 @@
-import { Injectable, Inject } from '@nestjs/common'
-import type { ICommandHandler } from '@distributed-social-platform/shared-kernel'
+import { Injectable } from '@nestjs/common'
+import type { ITransactionalCommandHandler } from '@distributed-social-platform/shared-kernel'
+import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
 import { CommandHandler } from '@/infrastructure/cqrs/decorators/command-handler.decorator'
 import { Revision } from '@/modules/knowledge/domain/entities/revision.entity'
-import { KNOWLEDGE_ITEM_REPOSITORY } from '@/modules/knowledge/domain/repositories/knowledge-item.repository'
-import type { IKnowledgeItemRepository } from '@/modules/knowledge/domain/repositories/knowledge-item.repository'
-import { REVISION_REPOSITORY } from '@/modules/knowledge/domain/repositories/revision.repository'
-import type { IRevisionRepository } from '@/modules/knowledge/domain/repositories/revision.repository'
 import {
   KnowledgeItemNotFoundError,
   KnowledgeVersionConflictError,
@@ -14,14 +11,15 @@ import { UpdateKnowledgeCommand } from './update-knowledge.command'
 
 @Injectable()
 @CommandHandler(UpdateKnowledgeCommand)
-export class UpdateKnowledgeHandler implements ICommandHandler<UpdateKnowledgeCommand, void> {
-  constructor(
-    @Inject(KNOWLEDGE_ITEM_REPOSITORY) private readonly itemRepo: IKnowledgeItemRepository,
-    @Inject(REVISION_REPOSITORY) private readonly revisionRepo: IRevisionRepository,
-  ) {}
+export class UpdateKnowledgeHandler implements ITransactionalCommandHandler<
+  UpdateKnowledgeCommand,
+  void,
+  CoreApiRepos
+> {
+  readonly kind = 'transactional' as const
 
-  async execute(command: UpdateKnowledgeCommand): Promise<void> {
-    const item = await this.itemRepo.findById(command.id)
+  async execute(command: UpdateKnowledgeCommand, tx: CoreApiRepos): Promise<void> {
+    const item = await tx.items.findById(command.id)
     if (!item) throw new KnowledgeItemNotFoundError()
 
     item.applyEdit({
@@ -30,10 +28,10 @@ export class UpdateKnowledgeHandler implements ICommandHandler<UpdateKnowledgeCo
       editedByUserId: command.editedByUserId,
     })
 
-    const ok = await this.itemRepo.updateWithOcc(item, command.expectedVersion)
+    const ok = await tx.items.updateWithOcc(item, command.expectedVersion)
     if (!ok) throw new KnowledgeVersionConflictError()
 
-    await this.revisionRepo.save(
+    await tx.revisions.save(
       Revision.create({
         itemId: item.id,
         version: item.version,

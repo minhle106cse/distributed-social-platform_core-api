@@ -1,11 +1,16 @@
+import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
 import { SpendCreditsHandler } from './spend-credits.handler'
 import { SpendCreditsCommand } from './spend-credits.command'
 import type { ICreditEventRepository } from '@/modules/credit/domain/repositories/credit-event.repository'
 import { CreditAccount } from '@/modules/credit/domain/entities/credit-account.aggregate'
-import { InsufficientCreditsError, CreditConcurrencyError } from '@/modules/credit/domain/credit.errors'
+import {
+  InsufficientCreditsError,
+  CreditConcurrencyError,
+} from '@/modules/credit/domain/credit.errors'
 
 describe('SpendCreditsHandler', () => {
   let handler: SpendCreditsHandler
+  let tx: CoreApiRepos
   let mockCreditRepo: jest.Mocked<ICreditEventRepository>
 
   beforeEach(() => {
@@ -13,7 +18,8 @@ describe('SpendCreditsHandler', () => {
       loadOrOpen: jest.fn(),
       save: jest.fn(),
     }
-    handler = new SpendCreditsHandler(mockCreditRepo)
+    handler = new SpendCreditsHandler()
+    tx = { creditEvents: mockCreditRepo } as unknown as CoreApiRepos
   })
 
   it('nên trừ balance và trả về {balance, spent} khi đủ tiền', async () => {
@@ -24,6 +30,7 @@ describe('SpendCreditsHandler', () => {
 
     const result = await handler.execute(
       new SpendCreditsCommand('org-1', 'user-1', 30, 'AI query'),
+      tx,
     )
 
     expect(mockCreditRepo.save).toHaveBeenCalledWith(account)
@@ -36,7 +43,7 @@ describe('SpendCreditsHandler', () => {
     mockCreditRepo.loadOrOpen.mockResolvedValue(account)
 
     await expect(
-      handler.execute(new SpendCreditsCommand('org-1', 'user-1', 50, 'AI query')),
+      handler.execute(new SpendCreditsCommand('org-1', 'user-1', 50, 'AI query'), tx),
     ).rejects.toThrow(InsufficientCreditsError)
 
     expect(mockCreditRepo.save).not.toHaveBeenCalled()
@@ -49,7 +56,7 @@ describe('SpendCreditsHandler', () => {
     mockCreditRepo.save.mockRejectedValue(new CreditConcurrencyError())
 
     await expect(
-      handler.execute(new SpendCreditsCommand('org-1', 'user-1', 10, 'AI query')),
+      handler.execute(new SpendCreditsCommand('org-1', 'user-1', 10, 'AI query'), tx),
     ).rejects.toThrow(CreditConcurrencyError)
   })
 })

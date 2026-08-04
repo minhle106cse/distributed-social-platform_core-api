@@ -1,24 +1,22 @@
-import { Injectable, Inject } from '@nestjs/common'
-import type { ICommandHandler } from '@distributed-social-platform/shared-kernel'
+import { Injectable } from '@nestjs/common'
+import type { ITransactionalCommandHandler } from '@distributed-social-platform/shared-kernel'
+import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
 import { CommandHandler } from '@/infrastructure/cqrs/decorators/command-handler.decorator'
 import { Bookmark } from '@/modules/engagement/domain/entities/bookmark.entity'
-import { KNOWLEDGE_ITEM_REPOSITORY } from '@/modules/knowledge/domain/repositories/knowledge-item.repository'
-import type { IKnowledgeItemRepository } from '@/modules/knowledge/domain/repositories/knowledge-item.repository'
-import { BOOKMARK_REPOSITORY } from '@/modules/engagement/domain/repositories/bookmark.repository'
-import type { IBookmarkRepository } from '@/modules/engagement/domain/repositories/bookmark.repository'
 import { KnowledgeItemNotFoundError } from '@/common/errors/knowledge.error'
 import { AddBookmarkCommand } from './add-bookmark.command'
 
 @Injectable()
 @CommandHandler(AddBookmarkCommand)
-export class AddBookmarkHandler implements ICommandHandler<AddBookmarkCommand, void> {
-  constructor(
-    @Inject(KNOWLEDGE_ITEM_REPOSITORY) private readonly itemRepo: IKnowledgeItemRepository,
-    @Inject(BOOKMARK_REPOSITORY) private readonly bookmarkRepo: IBookmarkRepository,
-  ) {}
+export class AddBookmarkHandler implements ITransactionalCommandHandler<
+  AddBookmarkCommand,
+  void,
+  CoreApiRepos
+> {
+  readonly kind = 'transactional' as const
 
-  async execute(command: AddBookmarkCommand): Promise<void> {
-    const item = await this.itemRepo.findById(command.itemId)
+  async execute(command: AddBookmarkCommand, tx: CoreApiRepos): Promise<void> {
+    const item = await tx.items.findById(command.itemId)
     if (!item) throw new KnowledgeItemNotFoundError()
 
     const bookmark = Bookmark.create({
@@ -26,6 +24,6 @@ export class AddBookmarkHandler implements ICommandHandler<AddBookmarkCommand, v
       userId: command.userId,
       itemId: command.itemId,
     })
-    await this.bookmarkRepo.add(bookmark)
+    await tx.bookmarks.add(bookmark)
   }
 }

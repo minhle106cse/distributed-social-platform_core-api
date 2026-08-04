@@ -1,19 +1,20 @@
-import { Injectable, Inject } from '@nestjs/common'
-import type { ICommandHandler } from '@distributed-social-platform/shared-kernel'
+import { Injectable } from '@nestjs/common'
+import type { ITransactionalCommandHandler } from '@distributed-social-platform/shared-kernel'
+import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
 import { CommandHandler } from '@/infrastructure/cqrs/decorators/command-handler.decorator'
 import { KnowledgeItem } from '@/modules/knowledge/domain/entities/knowledge-item.entity'
-import { KNOWLEDGE_ITEM_REPOSITORY } from '@/modules/knowledge/domain/repositories/knowledge-item.repository'
-import type { IKnowledgeItemRepository } from '@/modules/knowledge/domain/repositories/knowledge-item.repository'
 import { CreateKnowledgeCommand } from './create-knowledge.command'
 
 @Injectable()
 @CommandHandler(CreateKnowledgeCommand)
-export class CreateKnowledgeHandler implements ICommandHandler<CreateKnowledgeCommand, string> {
-  constructor(
-    @Inject(KNOWLEDGE_ITEM_REPOSITORY) private readonly itemRepo: IKnowledgeItemRepository,
-  ) {}
+export class CreateKnowledgeHandler implements ITransactionalCommandHandler<
+  CreateKnowledgeCommand,
+  string,
+  CoreApiRepos
+> {
+  readonly kind = 'transactional' as const
 
-  async execute(command: CreateKnowledgeCommand): Promise<string> {
+  async execute(command: CreateKnowledgeCommand, tx: CoreApiRepos): Promise<string> {
     const item = KnowledgeItem.create({
       orgId: command.orgId,
       spaceId: command.spaceId,
@@ -24,7 +25,7 @@ export class CreateKnowledgeHandler implements ICommandHandler<CreateKnowledgeCo
       createdByUserId: command.createdByUserId,
     })
 
-    await this.itemRepo.save(item)
+    await tx.items.save(item)
 
     return item.id
   }

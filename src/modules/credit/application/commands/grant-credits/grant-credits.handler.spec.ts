@@ -1,3 +1,4 @@
+import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
 import { GrantCreditsHandler } from './grant-credits.handler'
 import { GrantCreditsCommand } from './grant-credits.command'
 import type { ICreditEventRepository } from '@/modules/credit/domain/repositories/credit-event.repository'
@@ -9,6 +10,7 @@ import { OrgRole } from '@/modules/tenant/domain/org-rbac'
 
 describe('GrantCreditsHandler', () => {
   let handler: GrantCreditsHandler
+  let tx: CoreApiRepos
   let mockCreditRepo: jest.Mocked<ICreditEventRepository>
   let mockMembershipRepo: jest.Mocked<IMembershipRepository>
 
@@ -21,14 +23,18 @@ describe('GrantCreditsHandler', () => {
       findByOrgAndUser: jest.fn(),
       save: jest.fn(),
     }
-    handler = new GrantCreditsHandler(mockCreditRepo, mockMembershipRepo)
+    handler = new GrantCreditsHandler()
+    tx = {
+      creditEvents: mockCreditRepo,
+      memberships: mockMembershipRepo,
+    } as unknown as CoreApiRepos
   })
 
   it('nên throw MembershipNotFoundError và KHÔNG chạm credit repo nếu recipient không phải member của org (ghost-wallet guard)', async () => {
     mockMembershipRepo.findByOrgAndUser.mockResolvedValue(null)
 
     await expect(
-      handler.execute(new GrantCreditsCommand('org-1', 'not-a-member', 100, 'bonus')),
+      handler.execute(new GrantCreditsCommand('org-1', 'not-a-member', 100, 'bonus'), tx),
     ).rejects.toThrow(MembershipNotFoundError)
 
     expect(mockMembershipRepo.findByOrgAndUser).toHaveBeenCalledWith('org-1', 'not-a-member')
@@ -50,7 +56,10 @@ describe('GrantCreditsHandler', () => {
     mockCreditRepo.loadOrOpen.mockResolvedValue(account)
     mockCreditRepo.save.mockResolvedValue()
 
-    const result = await handler.execute(new GrantCreditsCommand('org-1', 'user-1', 100, 'bonus'))
+    const result = await handler.execute(
+      new GrantCreditsCommand('org-1', 'user-1', 100, 'bonus'),
+      tx,
+    )
 
     expect(mockCreditRepo.loadOrOpen).toHaveBeenCalledWith('org-1', 'user-1')
     expect(mockCreditRepo.save).toHaveBeenCalledWith(account)

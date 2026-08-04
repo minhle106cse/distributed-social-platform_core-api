@@ -1,3 +1,4 @@
+import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
 import type { PinoLogger } from 'nestjs-pino'
 import type { IMembershipRepository } from '@/modules/tenant/domain/repositories/membership.repository'
 import { Membership } from '@/modules/tenant/domain/entities/membership.entity'
@@ -12,6 +13,7 @@ jest.mock('uuid', () => ({
 
 describe('UpdateMemberRoleHandler', () => {
   let handler: UpdateMemberRoleHandler
+  let tx: CoreApiRepos
   let mockMembershipRepo: jest.Mocked<IMembershipRepository>
   let mockLogger: jest.Mocked<PinoLogger>
 
@@ -27,14 +29,15 @@ describe('UpdateMemberRoleHandler', () => {
       error: jest.fn(),
     } as unknown as jest.Mocked<PinoLogger>
 
-    handler = new UpdateMemberRoleHandler(mockMembershipRepo, mockLogger)
+    handler = new UpdateMemberRoleHandler(mockLogger)
+    tx = { memberships: mockMembershipRepo } as unknown as CoreApiRepos
   })
 
   it('should throw MembershipNotFoundError when the target user is not a member of the org', async () => {
     mockMembershipRepo.findByOrgAndUser.mockResolvedValueOnce(null)
 
     await expect(
-      handler.execute(new UpdateMemberRoleCommand('org-1', 'user-2', OrgRole.ADMIN, 'actor-1')),
+      handler.execute(new UpdateMemberRoleCommand('org-1', 'user-2', OrgRole.ADMIN, 'actor-1'), tx),
     ).rejects.toThrow(MembershipNotFoundError)
     expect(mockMembershipRepo.save).not.toHaveBeenCalled()
   })
@@ -47,7 +50,10 @@ describe('UpdateMemberRoleHandler', () => {
     })
     mockMembershipRepo.findByOrgAndUser.mockResolvedValueOnce(membership)
 
-    await handler.execute(new UpdateMemberRoleCommand('org-1', 'user-2', OrgRole.ADMIN, 'actor-1'))
+    await handler.execute(
+      new UpdateMemberRoleCommand('org-1', 'user-2', OrgRole.ADMIN, 'actor-1'),
+      tx,
+    )
 
     expect(membership.role).toBe(OrgRole.ADMIN)
     expect(mockMembershipRepo.save).toHaveBeenCalledWith(membership)
@@ -61,7 +67,10 @@ describe('UpdateMemberRoleHandler', () => {
     })
     mockMembershipRepo.findByOrgAndUser.mockResolvedValueOnce(membership)
 
-    await handler.execute(new UpdateMemberRoleCommand('org-1', 'user-2', OrgRole.ADMIN, 'actor-1'))
+    await handler.execute(
+      new UpdateMemberRoleCommand('org-1', 'user-2', OrgRole.ADMIN, 'actor-1'),
+      tx,
+    )
 
     expect(mockLogger.info).toHaveBeenCalledWith(
       expect.objectContaining({

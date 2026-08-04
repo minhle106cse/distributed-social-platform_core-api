@@ -1,7 +1,8 @@
+import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
 import type { IKnowledgeItemRepository } from '@/modules/knowledge/domain/repositories/knowledge-item.repository'
 import type { ISpaceRepository } from '@/modules/tenant/domain/repositories/space.repository'
 import type { IFollowRepository } from '@/modules/engagement/domain/repositories/follow.repository'
-import type { IOutboxRepository } from '@/modules/outbox/domain/repositories/outbox.repository'
+import type { IOutboxAppender } from '@/infrastructure/outbox/outbox.repository'
 import { Follow } from '@/modules/engagement/domain/entities/follow.entity'
 import { runWithTenantContext, setTenantId } from '@/common/tenant/tenant.context'
 import { FollowTargetNotFoundError } from '@/common/errors/engagement.error'
@@ -14,10 +15,11 @@ jest.mock('uuid', () => ({
 
 describe('FollowTargetHandler', () => {
   let handler: FollowTargetHandler
+  let tx: CoreApiRepos
   let mockItemRepo: jest.Mocked<IKnowledgeItemRepository>
   let mockSpaceRepo: jest.Mocked<ISpaceRepository>
   let mockFollowRepo: jest.Mocked<IFollowRepository>
-  let mockOutboxRepo: jest.Mocked<IOutboxRepository>
+  let mockOutboxRepo: jest.Mocked<IOutboxAppender>
 
   beforeEach(() => {
     mockItemRepo = {
@@ -39,9 +41,15 @@ describe('FollowTargetHandler', () => {
 
     mockOutboxRepo = {
       append: jest.fn(),
-    } as unknown as jest.Mocked<IOutboxRepository>
+    } as unknown as jest.Mocked<IOutboxAppender>
 
-    handler = new FollowTargetHandler(mockItemRepo, mockSpaceRepo, mockFollowRepo, mockOutboxRepo)
+    handler = new FollowTargetHandler()
+    tx = {
+      items: mockItemRepo,
+      spaces: mockSpaceRepo,
+      follows: mockFollowRepo,
+      outbox: mockOutboxRepo,
+    } as unknown as CoreApiRepos
   })
 
   function runInTenant<T>(orgId: string, fn: () => Promise<T>): Promise<T> {
@@ -56,7 +64,7 @@ describe('FollowTargetHandler', () => {
 
     await expect(
       runInTenant('org-1', () =>
-        handler.execute(new FollowTargetCommand('user-1', 'DOCUMENT', 'item-1')),
+        handler.execute(new FollowTargetCommand('user-1', 'DOCUMENT', 'item-1'), tx),
       ),
     ).rejects.toThrow(FollowTargetNotFoundError)
     expect(mockFollowRepo.add).not.toHaveBeenCalled()
@@ -67,14 +75,14 @@ describe('FollowTargetHandler', () => {
 
     await expect(
       runInTenant('org-1', () =>
-        handler.execute(new FollowTargetCommand('user-1', 'SPACE', 'space-1')),
+        handler.execute(new FollowTargetCommand('user-1', 'SPACE', 'space-1'), tx),
       ),
     ).rejects.toThrow(FollowTargetNotFoundError)
   })
 
   it('should throw when tenant context is missing (fail-closed, not silently org-less)', async () => {
     await expect(
-      handler.execute(new FollowTargetCommand('user-1', 'SPACE', 'space-1')),
+      handler.execute(new FollowTargetCommand('user-1', 'SPACE', 'space-1'), tx),
     ).rejects.toThrow('Tenant context is not set')
   })
 
@@ -82,7 +90,7 @@ describe('FollowTargetHandler', () => {
     mockSpaceRepo.findById.mockResolvedValueOnce({ id: 'space-1' } as never)
 
     await runInTenant('org-1', () =>
-      handler.execute(new FollowTargetCommand('user-1', 'SPACE', 'space-1')),
+      handler.execute(new FollowTargetCommand('user-1', 'SPACE', 'space-1'), tx),
     )
 
     expect(mockFollowRepo.add).toHaveBeenCalledTimes(1)

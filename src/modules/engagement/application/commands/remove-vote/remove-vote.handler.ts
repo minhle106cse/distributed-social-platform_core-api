@@ -1,16 +1,19 @@
-import { Injectable, Inject } from '@nestjs/common'
-import type { ICommandHandler } from '@distributed-social-platform/shared-kernel'
+import { Injectable } from '@nestjs/common'
+import type { ITransactionalCommandHandler } from '@distributed-social-platform/shared-kernel'
+import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
 import { CommandHandler } from '@/infrastructure/cqrs/decorators/command-handler.decorator'
-import { VOTE_REPOSITORY } from '@/modules/engagement/domain/repositories/vote.repository'
-import type { IVoteRepository } from '@/modules/engagement/domain/repositories/vote.repository'
 import { RemoveVoteCommand } from './remove-vote.command'
 
 @Injectable()
 @CommandHandler(RemoveVoteCommand)
-export class RemoveVoteHandler implements ICommandHandler<RemoveVoteCommand, void> {
-  constructor(@Inject(VOTE_REPOSITORY) private readonly voteRepo: IVoteRepository) {}
+export class RemoveVoteHandler implements ITransactionalCommandHandler<
+  RemoveVoteCommand,
+  void,
+  CoreApiRepos
+> {
+  readonly kind = 'transactional' as const
 
-  async execute(command: RemoveVoteCommand): Promise<void> {
-    await this.voteRepo.removeByItemAndUser(command.itemId, command.userId)
+  async execute(command: RemoveVoteCommand, tx: CoreApiRepos): Promise<void> {
+    await tx.votes.removeByItemAndUser(command.itemId, command.userId)
   }
 }

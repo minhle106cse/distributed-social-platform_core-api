@@ -1,8 +1,8 @@
 import { Injectable, Inject } from '@nestjs/common'
 import type { IQueryHandler } from '@distributed-social-platform/shared-kernel'
 import { QueryHandler } from '@/infrastructure/cqrs/decorators/query-handler.decorator'
-import { MEMBERSHIP_REPOSITORY } from '@/modules/tenant/domain/repositories/membership.repository'
-import type { IMembershipRepository } from '@/modules/tenant/domain/repositories/membership.repository'
+import { MEMBERSHIP_QUERY_REPOSITORY } from '@/modules/tenant/application/queries/membership.query-repository'
+import type { IMembershipQueryRepository } from '@/modules/tenant/application/queries/membership.query-repository'
 import { OrgPermissionResolver } from '@/modules/tenant/domain/services/resolve-org-permissions'
 import { CheckMembershipQuery } from './check-membership.query'
 
@@ -24,15 +24,16 @@ export class CheckMembershipHandler implements IQueryHandler<
   CheckMembershipResult
 > {
   constructor(
-    @Inject(MEMBERSHIP_REPOSITORY) private readonly membershipRepo: IMembershipRepository,
+    @Inject(MEMBERSHIP_QUERY_REPOSITORY)
+    private readonly membershipQueryRepo: IMembershipQueryRepository,
     private readonly permissionResolver: OrgPermissionResolver,
   ) {}
 
   async execute(query: CheckMembershipQuery): Promise<CheckMembershipResult> {
-    const membership = await this.membershipRepo.findByOrgAndUser(query.orgId, query.userId)
-    if (!membership) return { isMember: false, permissions: [] }
+    const role = await this.membershipQueryRepo.findRoleByOrgAndUser(query.orgId, query.userId)
+    if (!role) return { isMember: false, permissions: [] }
 
-    const permissions = await this.permissionResolver.resolve(query.orgId, membership.role)
+    const permissions = await this.permissionResolver.resolve(query.orgId, role)
     return { isMember: true, permissions }
   }
 }

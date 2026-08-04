@@ -1,5 +1,6 @@
+import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
 import type { IKnowledgeItemRepository } from '@/modules/knowledge/domain/repositories/knowledge-item.repository'
-import type { IOutboxRepository } from '@/modules/outbox/domain/repositories/outbox.repository'
+import type { IOutboxAppender } from '@/infrastructure/outbox/outbox.repository'
 import { KnowledgeItem } from '@/modules/knowledge/domain/entities/knowledge-item.entity'
 import {
   KnowledgeItemNotFoundError,
@@ -14,8 +15,9 @@ jest.mock('uuid', () => ({
 
 describe('PublishKnowledgeHandler', () => {
   let handler: PublishKnowledgeHandler
+  let tx: CoreApiRepos
   let mockItemRepo: jest.Mocked<IKnowledgeItemRepository>
-  let mockOutboxRepo: jest.Mocked<IOutboxRepository>
+  let mockOutboxRepo: jest.Mocked<IOutboxAppender>
 
   beforeEach(() => {
     mockItemRepo = {
@@ -27,17 +29,18 @@ describe('PublishKnowledgeHandler', () => {
 
     mockOutboxRepo = {
       append: jest.fn(),
-    } as unknown as jest.Mocked<IOutboxRepository>
+    } as unknown as jest.Mocked<IOutboxAppender>
 
-    handler = new PublishKnowledgeHandler(mockItemRepo, mockOutboxRepo)
+    handler = new PublishKnowledgeHandler()
+    tx = { items: mockItemRepo, outbox: mockOutboxRepo } as unknown as CoreApiRepos
   })
 
   it('should throw KnowledgeItemNotFoundError when the item does not exist', async () => {
     mockItemRepo.findById.mockResolvedValueOnce(null)
 
-    await expect(handler.execute(new PublishKnowledgeCommand('missing-id', 'user-1'))).rejects.toThrow(
-      KnowledgeItemNotFoundError,
-    )
+    await expect(
+      handler.execute(new PublishKnowledgeCommand('missing-id', 'user-1'), tx),
+    ).rejects.toThrow(KnowledgeItemNotFoundError)
   })
 
   it('should throw InvalidKnowledgeStateError when the item is not DRAFT', async () => {
@@ -52,9 +55,9 @@ describe('PublishKnowledgeHandler', () => {
     item.publish() // now PUBLISHED, already past DRAFT
     mockItemRepo.findById.mockResolvedValueOnce(item)
 
-    await expect(handler.execute(new PublishKnowledgeCommand('item-1', 'user-1'))).rejects.toThrow(
-      InvalidKnowledgeStateError,
-    )
+    await expect(
+      handler.execute(new PublishKnowledgeCommand('item-1', 'user-1'), tx),
+    ).rejects.toThrow(InvalidKnowledgeStateError)
     expect(mockOutboxRepo.append).not.toHaveBeenCalled()
   })
 
@@ -69,7 +72,7 @@ describe('PublishKnowledgeHandler', () => {
     })
     mockItemRepo.findById.mockResolvedValueOnce(item)
 
-    await handler.execute(new PublishKnowledgeCommand('item-1', 'user-1'))
+    await handler.execute(new PublishKnowledgeCommand('item-1', 'user-1'), tx)
 
     expect(item.status).toBe('PUBLISHED')
     expect(mockItemRepo.update).toHaveBeenCalledWith(item)

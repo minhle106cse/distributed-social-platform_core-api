@@ -1,9 +1,8 @@
-import { Injectable, Inject } from '@nestjs/common'
+import { Injectable } from '@nestjs/common'
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino'
-import type { ICommandHandler } from '@distributed-social-platform/shared-kernel'
+import type { ITransactionalCommandHandler } from '@distributed-social-platform/shared-kernel'
+import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
 import { CommandHandler } from '@/infrastructure/cqrs/decorators/command-handler.decorator'
-import { ORG_ROLE_PERMISSION_REPOSITORY } from '@/modules/tenant/domain/repositories/org-role-permission.repository'
-import type { IOrgRolePermissionRepository } from '@/modules/tenant/domain/repositories/org-role-permission.repository'
 import { OrgRole } from '@/modules/tenant/domain/org-rbac'
 import { isValidOrgPermission, logAudit } from '@distributed-social-platform/shared-kernel'
 import {
@@ -14,13 +13,18 @@ import { UpdateRolePermissionsCommand } from './update-role-permissions.command'
 
 @Injectable()
 @CommandHandler(UpdateRolePermissionsCommand)
-export class UpdateRolePermissionsHandler implements ICommandHandler<UpdateRolePermissionsCommand> {
+export class UpdateRolePermissionsHandler implements ITransactionalCommandHandler<
+  UpdateRolePermissionsCommand,
+  void,
+  CoreApiRepos
+> {
+  readonly kind = 'transactional' as const
+
   constructor(
-    @Inject(ORG_ROLE_PERMISSION_REPOSITORY) private readonly repo: IOrgRolePermissionRepository,
     @InjectPinoLogger(UpdateRolePermissionsHandler.name) private readonly logger: PinoLogger,
   ) {}
 
-  async execute(command: UpdateRolePermissionsCommand): Promise<void> {
+  async execute(command: UpdateRolePermissionsCommand, tx: CoreApiRepos): Promise<void> {
     // Guardrail: OWNER luôn full quyền (implicit) → không cho chỉnh, chống lock-out.
     if (command.role === OrgRole.OWNER) throw new CannotModifyOwnerPermissionsError()
 
@@ -30,7 +34,7 @@ export class UpdateRolePermissionsHandler implements ICommandHandler<UpdateRoleP
       if (!isValidOrgPermission(p)) throw new InvalidOrgPermissionError(p)
     }
 
-    await this.repo.replaceForRole(command.orgId, command.role, unique)
+    await tx.rolePermissions.replaceForRole(command.orgId, command.role, unique)
 
     // Privilege-escalation vector — a role's permission SET changing affects
     // every member holding that role, not just one target user.

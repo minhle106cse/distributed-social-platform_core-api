@@ -1,3 +1,4 @@
+import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
 import type { PinoLogger } from 'nestjs-pino'
 import type { IOrgRolePermissionRepository } from '@/modules/tenant/domain/repositories/org-role-permission.repository'
 import { OrgRole } from '@/modules/tenant/domain/org-rbac'
@@ -11,6 +12,7 @@ import { UpdateRolePermissionsCommand } from './update-role-permissions.command'
 
 describe('UpdateRolePermissionsHandler', () => {
   let handler: UpdateRolePermissionsHandler
+  let tx: CoreApiRepos
   let mockRepo: jest.Mocked<IOrgRolePermissionRepository>
   let mockLogger: jest.Mocked<PinoLogger>
 
@@ -28,7 +30,8 @@ describe('UpdateRolePermissionsHandler', () => {
       error: jest.fn(),
     } as unknown as jest.Mocked<PinoLogger>
 
-    handler = new UpdateRolePermissionsHandler(mockRepo, mockLogger)
+    handler = new UpdateRolePermissionsHandler(mockLogger)
+    tx = { rolePermissions: mockRepo } as unknown as CoreApiRepos
   })
 
   it('should throw CannotModifyOwnerPermissionsError — the anti-lockout guardrail — when targeting OWNER', async () => {
@@ -39,7 +42,7 @@ describe('UpdateRolePermissionsHandler', () => {
       'actor-1',
     )
 
-    await expect(handler.execute(command)).rejects.toThrow(CannotModifyOwnerPermissionsError)
+    await expect(handler.execute(command, tx)).rejects.toThrow(CannotModifyOwnerPermissionsError)
     expect(mockRepo.replaceForRole).not.toHaveBeenCalled()
   })
 
@@ -51,7 +54,7 @@ describe('UpdateRolePermissionsHandler', () => {
       'actor-1',
     )
 
-    await expect(handler.execute(command)).rejects.toThrow(InvalidOrgPermissionError)
+    await expect(handler.execute(command, tx)).rejects.toThrow(InvalidOrgPermissionError)
     expect(mockRepo.replaceForRole).not.toHaveBeenCalled()
   })
 
@@ -63,7 +66,7 @@ describe('UpdateRolePermissionsHandler', () => {
       'actor-1',
     )
 
-    await handler.execute(command)
+    await handler.execute(command, tx)
 
     expect(mockRepo.replaceForRole).toHaveBeenCalledWith('org-1', OrgRole.ADMIN, [
       OrgPermission.KNOWLEDGE_READ,
@@ -79,14 +82,18 @@ describe('UpdateRolePermissionsHandler', () => {
       'actor-1',
     )
 
-    await handler.execute(command)
+    await handler.execute(command, tx)
 
     expect(mockLogger.info).toHaveBeenCalledWith(
       expect.objectContaining({
         context: 'AuditLog',
         action: 'org.role_permissions_updated',
         actorUserId: 'actor-1',
-        metadata: { orgId: 'org-1', role: OrgRole.ADMIN, permissions: [OrgPermission.KNOWLEDGE_READ] },
+        metadata: {
+          orgId: 'org-1',
+          role: OrgRole.ADMIN,
+          permissions: [OrgPermission.KNOWLEDGE_READ],
+        },
       }),
       expect.any(String),
     )

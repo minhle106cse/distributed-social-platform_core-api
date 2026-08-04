@@ -1,23 +1,24 @@
-import { Injectable, Inject } from '@nestjs/common'
-import type { ICommandHandler } from '@distributed-social-platform/shared-kernel'
+import { Injectable } from '@nestjs/common'
+import type { ITransactionalCommandHandler } from '@distributed-social-platform/shared-kernel'
+import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
 import { CommandHandler } from '@/infrastructure/cqrs/decorators/command-handler.decorator'
-import { KNOWLEDGE_ITEM_REPOSITORY } from '@/modules/knowledge/domain/repositories/knowledge-item.repository'
-import type { IKnowledgeItemRepository } from '@/modules/knowledge/domain/repositories/knowledge-item.repository'
 import { KnowledgeItemNotFoundError } from '@/common/errors/knowledge.error'
 import { DeleteKnowledgeCommand } from './delete-knowledge.command'
 
 @Injectable()
 @CommandHandler(DeleteKnowledgeCommand)
-export class DeleteKnowledgeHandler implements ICommandHandler<DeleteKnowledgeCommand, void> {
-  constructor(
-    @Inject(KNOWLEDGE_ITEM_REPOSITORY) private readonly itemRepo: IKnowledgeItemRepository,
-  ) {}
+export class DeleteKnowledgeHandler implements ITransactionalCommandHandler<
+  DeleteKnowledgeCommand,
+  void,
+  CoreApiRepos
+> {
+  readonly kind = 'transactional' as const
 
-  async execute(command: DeleteKnowledgeCommand): Promise<void> {
-    const item = await this.itemRepo.findById(command.id)
+  async execute(command: DeleteKnowledgeCommand, tx: CoreApiRepos): Promise<void> {
+    const item = await tx.items.findById(command.id)
     if (!item) throw new KnowledgeItemNotFoundError()
 
     item.softDelete()
-    await this.itemRepo.update(item)
+    await tx.items.update(item)
   }
 }

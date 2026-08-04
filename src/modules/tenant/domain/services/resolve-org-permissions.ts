@@ -1,6 +1,6 @@
 import { ALL_ORG_PERMISSIONS } from '@distributed-social-platform/shared-kernel'
 import { OrgRole } from '../org-rbac'
-import type { IOrgRolePermissionRepository } from '../repositories/org-role-permission.repository'
+import type { IOrgRolePermissionReader } from '../repositories/org-role-permission.repository'
 
 // OWNER is implicit-all (no DB row needed) to prevent lock-out — every other
 // role resolves from org_role_permissions. Single source of truth for this
@@ -20,7 +20,9 @@ import type { IOrgRolePermissionRepository } from '../repositories/org-role-perm
 // QueryBus/EventBus/LoggingMiddleware/RetryMiddleware/TransactionMiddleware
 // (infrastructure/cqrs/cqrs.module.ts) — not a new pattern invented here.
 export class OrgPermissionResolver {
-  constructor(private readonly rolePermissionRepo: IOrgRolePermissionRepository) {}
+  // Reader, not the write repository: this resolves permissions for a guard, which
+  // runs before any transaction exists (ADR-0001).
+  constructor(private readonly rolePermissionRepo: IOrgRolePermissionReader) {}
 
   async resolve(orgId: string, role: OrgRole): Promise<string[]> {
     if (role === OrgRole.OWNER) return [...ALL_ORG_PERMISSIONS]

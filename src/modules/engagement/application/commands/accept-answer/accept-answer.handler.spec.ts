@@ -1,3 +1,4 @@
+import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
 import type { IKnowledgeItemRepository } from '@/modules/knowledge/domain/repositories/knowledge-item.repository'
 import { KnowledgeItem } from '@/modules/knowledge/domain/entities/knowledge-item.entity'
 import { KnowledgeItemNotFoundError } from '@/common/errors/knowledge.error'
@@ -28,6 +29,7 @@ function buildItem(overrides: Partial<Parameters<typeof KnowledgeItem.create>[0]
 
 describe('AcceptAnswerHandler', () => {
   let handler: AcceptAnswerHandler
+  let tx: CoreApiRepos
   let mockItemRepo: jest.Mocked<IKnowledgeItemRepository>
 
   beforeEach(() => {
@@ -38,14 +40,15 @@ describe('AcceptAnswerHandler', () => {
       update: jest.fn(),
     } as unknown as jest.Mocked<IKnowledgeItemRepository>
 
-    handler = new AcceptAnswerHandler(mockItemRepo)
+    handler = new AcceptAnswerHandler()
+    tx = { items: mockItemRepo } as unknown as CoreApiRepos
   })
 
   it('should throw KnowledgeItemNotFoundError when the question does not exist', async () => {
     mockItemRepo.findById.mockResolvedValueOnce(null)
 
     await expect(
-      handler.execute(new AcceptAnswerCommand('missing-q', 'answer-1', 'author-1')),
+      handler.execute(new AcceptAnswerCommand('missing-q', 'answer-1', 'author-1'), tx),
     ).rejects.toThrow(KnowledgeItemNotFoundError)
   })
 
@@ -53,7 +56,7 @@ describe('AcceptAnswerHandler', () => {
     mockItemRepo.findById.mockResolvedValueOnce(buildItem({ type: 'DOCUMENT' }))
 
     await expect(
-      handler.execute(new AcceptAnswerCommand('doc-1', 'answer-1', 'author-1')),
+      handler.execute(new AcceptAnswerCommand('doc-1', 'answer-1', 'author-1'), tx),
     ).rejects.toThrow(NotAQuestionError)
   })
 
@@ -61,7 +64,7 @@ describe('AcceptAnswerHandler', () => {
     mockItemRepo.findById.mockResolvedValueOnce(buildItem())
 
     await expect(
-      handler.execute(new AcceptAnswerCommand('q-1', 'answer-1', 'someone-else')),
+      handler.execute(new AcceptAnswerCommand('q-1', 'answer-1', 'someone-else'), tx),
     ).rejects.toThrow(AcceptAnswerForbiddenError)
   })
 
@@ -70,7 +73,7 @@ describe('AcceptAnswerHandler', () => {
     mockItemRepo.findById.mockResolvedValueOnce(question).mockResolvedValueOnce(null)
 
     await expect(
-      handler.execute(new AcceptAnswerCommand('q-1', 'missing-answer', 'author-1')),
+      handler.execute(new AcceptAnswerCommand('q-1', 'missing-answer', 'author-1'), tx),
     ).rejects.toThrow(KnowledgeItemNotFoundError)
   })
 
@@ -80,7 +83,7 @@ describe('AcceptAnswerHandler', () => {
     mockItemRepo.findById.mockResolvedValueOnce(question).mockResolvedValueOnce(notAnAnswer)
 
     await expect(
-      handler.execute(new AcceptAnswerCommand('q-1', 'not-answer', 'author-1')),
+      handler.execute(new AcceptAnswerCommand('q-1', 'not-answer', 'author-1'), tx),
     ).rejects.toThrow(NotAnAnswerError)
   })
 
@@ -96,7 +99,7 @@ describe('AcceptAnswerHandler', () => {
       .mockResolvedValueOnce(answerForOtherQuestion)
 
     await expect(
-      handler.execute(new AcceptAnswerCommand('q-1', 'answer-1', 'author-1')),
+      handler.execute(new AcceptAnswerCommand('q-1', 'answer-1', 'author-1'), tx),
     ).rejects.toThrow(AnswerNotForQuestionError)
   })
 
@@ -105,7 +108,7 @@ describe('AcceptAnswerHandler', () => {
     const answer = buildItem({ type: 'ANSWER', createdByUserId: 'user-2', parentId: question.id })
     mockItemRepo.findById.mockResolvedValueOnce(question).mockResolvedValueOnce(answer)
 
-    await handler.execute(new AcceptAnswerCommand(question.id, answer.id, 'author-1'))
+    await handler.execute(new AcceptAnswerCommand(question.id, answer.id, 'author-1'), tx)
 
     expect(question.acceptedAnswerId).toBe(answer.id)
     expect(mockItemRepo.update).toHaveBeenCalledWith(question)

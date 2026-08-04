@@ -1,18 +1,10 @@
-import { Injectable } from '@nestjs/common'
 import type { Prisma } from '@/generated'
-import { PrismaService } from '@/infrastructure/database/prisma/prisma.service'
-import { getTx } from '@distributed-social-platform/shared-kernel'
 import type { Membership } from '../../domain/entities/membership.entity'
 import type { IMembershipRepository } from '../../domain/repositories/membership.repository'
 import { MembershipMapper } from '../mappers/membership.mapper'
 
-@Injectable()
 export class PrismaMembershipRepository implements IMembershipRepository {
-  constructor(private readonly prisma: PrismaService) {}
-
-  private get client(): Prisma.TransactionClient {
-    return getTx<Prisma.TransactionClient>() ?? this.prisma.client
-  }
+  constructor(private readonly client: Prisma.TransactionClient) {}
 
   async findByOrgAndUser(orgId: string, userId: string): Promise<Membership | null> {
     const row = await this.client.membership.findUnique({

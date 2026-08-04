@@ -1,24 +1,22 @@
-import { Injectable, Inject } from '@nestjs/common'
-import type { ICommandHandler } from '@distributed-social-platform/shared-kernel'
+import { Injectable } from '@nestjs/common'
+import type { ITransactionalCommandHandler } from '@distributed-social-platform/shared-kernel'
+import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
 import { CommandHandler } from '@/infrastructure/cqrs/decorators/command-handler.decorator'
-import { CREDIT_EVENT_REPOSITORY } from '@/modules/credit/domain/repositories/credit-event.repository'
-import type { ICreditEventRepository } from '@/modules/credit/domain/repositories/credit-event.repository'
 import { RefundCreditsCommand } from './refund-credits.command'
 
 @Injectable()
 @CommandHandler(RefundCreditsCommand)
-export class RefundCreditsHandler implements ICommandHandler<
+export class RefundCreditsHandler implements ITransactionalCommandHandler<
   RefundCreditsCommand,
-  { balance: number }
+  { balance: number },
+  CoreApiRepos
 > {
-  constructor(
-    @Inject(CREDIT_EVENT_REPOSITORY) private readonly creditRepo: ICreditEventRepository,
-  ) {}
+  readonly kind = 'transactional' as const
 
-  async execute(command: RefundCreditsCommand): Promise<{ balance: number }> {
-    const account = await this.creditRepo.loadOrOpen(command.orgId, command.userId)
+  async execute(command: RefundCreditsCommand, tx: CoreApiRepos): Promise<{ balance: number }> {
+    const account = await tx.creditEvents.loadOrOpen(command.orgId, command.userId)
     account.refund(command.amount, command.reason)
-    await this.creditRepo.save(account)
+    await tx.creditEvents.save(account)
     return { balance: account.balance }
   }
 }

@@ -1,3 +1,4 @@
+import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
 import type { IKnowledgeItemRepository } from '@/modules/knowledge/domain/repositories/knowledge-item.repository'
 import { KnowledgeItem } from '@/modules/knowledge/domain/entities/knowledge-item.entity'
 import { KnowledgeItemNotFoundError } from '@/common/errors/knowledge.error'
@@ -11,6 +12,7 @@ jest.mock('uuid', () => ({
 
 describe('UnacceptAnswerHandler', () => {
   let handler: UnacceptAnswerHandler
+  let tx: CoreApiRepos
   let mockItemRepo: jest.Mocked<IKnowledgeItemRepository>
 
   beforeEach(() => {
@@ -21,15 +23,16 @@ describe('UnacceptAnswerHandler', () => {
       update: jest.fn(),
     } as unknown as jest.Mocked<IKnowledgeItemRepository>
 
-    handler = new UnacceptAnswerHandler(mockItemRepo)
+    handler = new UnacceptAnswerHandler()
+    tx = { items: mockItemRepo } as unknown as CoreApiRepos
   })
 
   it('should throw KnowledgeItemNotFoundError when the question does not exist', async () => {
     mockItemRepo.findById.mockResolvedValueOnce(null)
 
-    await expect(handler.execute(new UnacceptAnswerCommand('missing-q', 'author-1'))).rejects.toThrow(
-      KnowledgeItemNotFoundError,
-    )
+    await expect(
+      handler.execute(new UnacceptAnswerCommand('missing-q', 'author-1'), tx),
+    ).rejects.toThrow(KnowledgeItemNotFoundError)
   })
 
   it('should throw NotAQuestionError when the item is not a QUESTION', async () => {
@@ -43,9 +46,9 @@ describe('UnacceptAnswerHandler', () => {
     })
     mockItemRepo.findById.mockResolvedValueOnce(doc)
 
-    await expect(handler.execute(new UnacceptAnswerCommand('doc-1', 'author-1'))).rejects.toThrow(
-      NotAQuestionError,
-    )
+    await expect(
+      handler.execute(new UnacceptAnswerCommand('doc-1', 'author-1'), tx),
+    ).rejects.toThrow(NotAQuestionError)
   })
 
   it('should throw AcceptAnswerForbiddenError when the actor is not the question author', async () => {
@@ -60,7 +63,7 @@ describe('UnacceptAnswerHandler', () => {
     mockItemRepo.findById.mockResolvedValueOnce(question)
 
     await expect(
-      handler.execute(new UnacceptAnswerCommand('q-1', 'someone-else')),
+      handler.execute(new UnacceptAnswerCommand('q-1', 'someone-else'), tx),
     ).rejects.toThrow(AcceptAnswerForbiddenError)
   })
 
@@ -76,7 +79,7 @@ describe('UnacceptAnswerHandler', () => {
     question.acceptAnswer('answer-1')
     mockItemRepo.findById.mockResolvedValueOnce(question)
 
-    await handler.execute(new UnacceptAnswerCommand('q-1', 'author-1'))
+    await handler.execute(new UnacceptAnswerCommand('q-1', 'author-1'), tx)
 
     expect(question.acceptedAnswerId).toBeNull()
     expect(mockItemRepo.update).toHaveBeenCalledWith(question)

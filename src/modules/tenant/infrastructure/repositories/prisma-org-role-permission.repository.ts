@@ -1,7 +1,4 @@
-import { Injectable } from '@nestjs/common'
 import type { Prisma, OrgRole as PrismaOrgRole } from '@/generated'
-import { PrismaService } from '@/infrastructure/database/prisma/prisma.service'
-import { getTx } from '@distributed-social-platform/shared-kernel'
 import { DEFAULT_ROLE_PERMISSIONS } from '@/modules/tenant/domain/org-rbac'
 import type { OrgRole } from '@/modules/tenant/domain/org-rbac'
 import type {
@@ -9,13 +6,8 @@ import type {
   OrgRolePermissionEntry,
 } from '../../domain/repositories/org-role-permission.repository'
 
-@Injectable()
 export class PrismaOrgRolePermissionRepository implements IOrgRolePermissionRepository {
-  constructor(private readonly prisma: PrismaService) {}
-
-  private get client(): Prisma.TransactionClient {
-    return getTx<Prisma.TransactionClient>() ?? this.prisma.client
-  }
+  constructor(private readonly client: Prisma.TransactionClient) {}
 
   async seedDefaults(orgId: string): Promise<void> {
     const rows = Object.entries(DEFAULT_ROLE_PERMISSIONS).flatMap(([role, permissions]) =>

@@ -1,3 +1,4 @@
+import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
 import type { IOrgInviteRepository } from '@/modules/tenant/domain/repositories/org-invite.repository'
 import type { IMembershipRepository } from '@/modules/tenant/domain/repositories/membership.repository'
 import { OrgInvite } from '@/modules/tenant/domain/entities/org-invite.entity'
@@ -31,6 +32,7 @@ function buildInvite(overrides: Partial<Parameters<typeof OrgInvite.rehydrate>[0
 
 describe('AcceptInviteHandler', () => {
   let handler: AcceptInviteHandler
+  let tx: CoreApiRepos
   let mockInviteRepo: jest.Mocked<IOrgInviteRepository>
   let mockMembershipRepo: jest.Mocked<IMembershipRepository>
 
@@ -45,15 +47,16 @@ describe('AcceptInviteHandler', () => {
       save: jest.fn(),
     } as unknown as jest.Mocked<IMembershipRepository>
 
-    handler = new AcceptInviteHandler(mockInviteRepo, mockMembershipRepo)
+    handler = new AcceptInviteHandler()
+    tx = { invites: mockInviteRepo, memberships: mockMembershipRepo } as unknown as CoreApiRepos
   })
 
   it('should throw InviteNotFoundError when the token does not resolve to an invite', async () => {
     mockInviteRepo.findByToken.mockResolvedValueOnce(null)
 
-    await expect(handler.execute(new AcceptInviteCommand('bad-token', 'user-2'))).rejects.toThrow(
-      InviteNotFoundError,
-    )
+    await expect(
+      handler.execute(new AcceptInviteCommand('bad-token', 'user-2'), tx),
+    ).rejects.toThrow(InviteNotFoundError)
   })
 
   it('should throw InviteExpiredError for an expired invite', async () => {
@@ -61,7 +64,7 @@ describe('AcceptInviteHandler', () => {
       buildInvite({ expiresAt: new Date(Date.now() - 1_000) }),
     )
 
-    await expect(handler.execute(new AcceptInviteCommand('tok-1', 'user-2'))).rejects.toThrow(
+    await expect(handler.execute(new AcceptInviteCommand('tok-1', 'user-2'), tx)).rejects.toThrow(
       InviteExpiredError,
     )
   })
@@ -71,7 +74,7 @@ describe('AcceptInviteHandler', () => {
       buildInvite({ usedAt: new Date(), usedBy: 'someone-else' }),
     )
 
-    await expect(handler.execute(new AcceptInviteCommand('tok-1', 'user-2'))).rejects.toThrow(
+    await expect(handler.execute(new AcceptInviteCommand('tok-1', 'user-2'), tx)).rejects.toThrow(
       InviteAlreadyUsedError,
     )
   })
@@ -80,7 +83,7 @@ describe('AcceptInviteHandler', () => {
     mockInviteRepo.findByToken.mockResolvedValueOnce(buildInvite())
     mockMembershipRepo.findByOrgAndUser.mockResolvedValueOnce({} as never)
 
-    await expect(handler.execute(new AcceptInviteCommand('tok-1', 'user-2'))).rejects.toThrow(
+    await expect(handler.execute(new AcceptInviteCommand('tok-1', 'user-2'), tx)).rejects.toThrow(
       AlreadyMemberError,
     )
     expect(mockMembershipRepo.save).not.toHaveBeenCalled()
@@ -91,7 +94,7 @@ describe('AcceptInviteHandler', () => {
     mockInviteRepo.findByToken.mockResolvedValueOnce(invite)
     mockMembershipRepo.findByOrgAndUser.mockResolvedValueOnce(null)
 
-    const result = await handler.execute(new AcceptInviteCommand('tok-1', 'user-2'))
+    const result = await handler.execute(new AcceptInviteCommand('tok-1', 'user-2'), tx)
 
     expect(result).toEqual({ orgId: 'org-1', role: OrgRole.MEMBER })
 

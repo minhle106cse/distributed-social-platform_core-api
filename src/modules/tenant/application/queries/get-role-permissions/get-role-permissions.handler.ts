@@ -1,8 +1,8 @@
 import { Injectable, Inject } from '@nestjs/common'
 import type { IQueryHandler } from '@distributed-social-platform/shared-kernel'
 import { QueryHandler } from '@/infrastructure/cqrs/decorators/query-handler.decorator'
-import { ORG_ROLE_PERMISSION_REPOSITORY } from '@/modules/tenant/domain/repositories/org-role-permission.repository'
-import type { IOrgRolePermissionRepository } from '@/modules/tenant/domain/repositories/org-role-permission.repository'
+import { ORG_ROLE_PERMISSION_READER } from '@/modules/tenant/domain/repositories/org-role-permission.repository'
+import type { IOrgRolePermissionReader } from '@/modules/tenant/domain/repositories/org-role-permission.repository'
 import { OrgRole } from '@/modules/tenant/domain/org-rbac'
 import { OrgPermissionResolver } from '@/modules/tenant/domain/services/resolve-org-permissions'
 import { GetRolePermissionsQuery } from './get-role-permissions.query'
@@ -16,7 +16,7 @@ export class GetRolePermissionsHandler implements IQueryHandler<
   RolePermissionsMap
 > {
   constructor(
-    @Inject(ORG_ROLE_PERMISSION_REPOSITORY) private readonly repo: IOrgRolePermissionRepository,
+    @Inject(ORG_ROLE_PERMISSION_READER) private readonly repo: IOrgRolePermissionReader,
     private readonly permissionResolver: OrgPermissionResolver,
   ) {}
 

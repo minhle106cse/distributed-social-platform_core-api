@@ -12,17 +12,20 @@ import { ScheduleModule } from '@nestjs/schedule'
 import { LoggerModule } from 'nestjs-pino'
 import { ConfigModule } from './config/config.module'
 import { PrismaModule } from './infrastructure/database/prisma/prisma.module'
+import { PrismaTxRunnerModule } from './infrastructure/database/prisma/prisma-tx-runner.module'
+import { ScheduledJobsModule } from './infrastructure/scheduled-jobs/scheduled-jobs.module'
+import { SagaCompensationModule } from './infrastructure/saga-compensation/saga-compensation.module'
 import { HttpIdempotencyModule } from './infrastructure/http/idempotency/idempotency.module'
 import { createLogger } from '@distributed-social-platform/shared-kernel'
 
 import { CqrsModule } from './infrastructure/cqrs/cqrs.module'
 import { KafkaModule } from './infrastructure/kafka/kafka.module'
 import { MessagingModule } from './infrastructure/messaging/messaging.module'
+import { OutboxModule } from './infrastructure/outbox/outbox.module'
 import { TenantModule } from './modules/tenant/tenant.module'
 import { PlatformAdminModule } from './modules/platform-admin/platform-admin.module'
 import { KnowledgeModule } from './modules/knowledge/knowledge.module'
 import { EngagementModule } from './modules/engagement/engagement.module'
-import { OutboxModule } from './modules/outbox/outbox.module'
 import { FeedModule } from './modules/feed/feed.module'
 import { CreditModule } from './modules/credit/credit.module'
 
@@ -32,6 +35,9 @@ import { CreditModule } from './modules/credit/credit.module'
     ConfigModule,
     CqrsModule,
     PrismaModule,
+    PrismaTxRunnerModule,
+    ScheduledJobsModule,
+    SagaCompensationModule,
     HttpIdempotencyModule,
     KafkaModule,
     MessagingModule,

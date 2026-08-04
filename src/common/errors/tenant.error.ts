@@ -9,6 +9,15 @@ export class OrgSlugAlreadyTakenError extends ApplicationError {
   }
 }
 
+export class OrgNotFoundError extends ApplicationError {
+  readonly statusCode = 404
+  readonly code = 'ORG_NOT_FOUND'
+
+  constructor() {
+    super('Organization not found')
+  }
+}
+
 export class OrgAccessForbiddenError extends ApplicationError {
   readonly statusCode = 403
   readonly code = 'ORG_ACCESS_FORBIDDEN'

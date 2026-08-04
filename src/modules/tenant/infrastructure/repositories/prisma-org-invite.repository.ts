@@ -1,18 +1,10 @@
-import { Injectable } from '@nestjs/common'
 import type { Prisma } from '@/generated'
-import { PrismaService } from '@/infrastructure/database/prisma/prisma.service'
-import { getTx } from '@distributed-social-platform/shared-kernel'
 import { OrgInvite } from '../../domain/entities/org-invite.entity'
 import { OrgInviteMapper } from '../mappers/org-invite.mapper'
 import type { IOrgInviteRepository } from '../../domain/repositories/org-invite.repository'
 
-@Injectable()
 export class PrismaOrgInviteRepository implements IOrgInviteRepository {
-  constructor(private readonly prisma: PrismaService) {}
-
-  private get client(): Prisma.TransactionClient {
-    return getTx<Prisma.TransactionClient>() ?? this.prisma.client
-  }
+  constructor(private readonly client: Prisma.TransactionClient) {}
 
   async save(invite: OrgInvite): Promise<void> {
     const data = OrgInviteMapper.toPersistence(invite)

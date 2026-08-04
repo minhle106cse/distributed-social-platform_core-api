@@ -1,3 +1,4 @@
+import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
 import type { IKnowledgeItemRepository } from '@/modules/knowledge/domain/repositories/knowledge-item.repository'
 import type { IRevisionRepository } from '@/modules/knowledge/domain/repositories/revision.repository'
 import { KnowledgeItem } from '@/modules/knowledge/domain/entities/knowledge-item.entity'
@@ -14,6 +15,7 @@ jest.mock('uuid', () => ({
 
 describe('UpdateKnowledgeHandler', () => {
   let handler: UpdateKnowledgeHandler
+  let tx: CoreApiRepos
   let mockItemRepo: jest.Mocked<IKnowledgeItemRepository>
   let mockRevisionRepo: jest.Mocked<IRevisionRepository>
 
@@ -29,7 +31,8 @@ describe('UpdateKnowledgeHandler', () => {
       save: jest.fn(),
     } as unknown as jest.Mocked<IRevisionRepository>
 
-    handler = new UpdateKnowledgeHandler(mockItemRepo, mockRevisionRepo)
+    handler = new UpdateKnowledgeHandler()
+    tx = { items: mockItemRepo, revisions: mockRevisionRepo } as unknown as CoreApiRepos
   })
 
   function buildItem() {
@@ -47,7 +50,7 @@ describe('UpdateKnowledgeHandler', () => {
     mockItemRepo.findById.mockResolvedValueOnce(null)
 
     await expect(
-      handler.execute(new UpdateKnowledgeCommand('missing-id', 1, 'T', 'B', 'user-1')),
+      handler.execute(new UpdateKnowledgeCommand('missing-id', 1, 'T', 'B', 'user-1'), tx),
     ).rejects.toThrow(KnowledgeItemNotFoundError)
   })
 
@@ -56,7 +59,10 @@ describe('UpdateKnowledgeHandler', () => {
     mockItemRepo.updateWithOcc.mockResolvedValueOnce(false)
 
     await expect(
-      handler.execute(new UpdateKnowledgeCommand('item-1', 1, 'New Title', 'New body', 'user-2')),
+      handler.execute(
+        new UpdateKnowledgeCommand('item-1', 1, 'New Title', 'New body', 'user-2'),
+        tx,
+      ),
     ).rejects.toThrow(KnowledgeVersionConflictError)
 
     expect(mockRevisionRepo.save).not.toHaveBeenCalled()
@@ -67,7 +73,10 @@ describe('UpdateKnowledgeHandler', () => {
     mockItemRepo.findById.mockResolvedValueOnce(item)
     mockItemRepo.updateWithOcc.mockResolvedValueOnce(true)
 
-    await handler.execute(new UpdateKnowledgeCommand('item-1', 1, 'New Title', 'New body', 'user-2'))
+    await handler.execute(
+      new UpdateKnowledgeCommand('item-1', 1, 'New Title', 'New body', 'user-2'),
+      tx,
+    )
 
     expect(item.version).toBe(2)
     expect(mockItemRepo.updateWithOcc).toHaveBeenCalledWith(item, 1)

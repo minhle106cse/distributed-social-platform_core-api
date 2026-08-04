@@ -1,9 +1,11 @@
+import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
 import type { ISpaceRepository } from '@/modules/tenant/domain/repositories/space.repository'
 import { CreateSpaceHandler } from './create-space.handler'
 import { CreateSpaceCommand } from './create-space.command'
 
 describe('CreateSpaceHandler', () => {
   let handler: CreateSpaceHandler
+  let tx: CoreApiRepos
   let mockSpaceRepo: jest.Mocked<ISpaceRepository>
 
   beforeEach(() => {
@@ -12,13 +14,14 @@ describe('CreateSpaceHandler', () => {
       save: jest.fn(),
     } as unknown as jest.Mocked<ISpaceRepository>
 
-    handler = new CreateSpaceHandler(mockSpaceRepo)
+    handler = new CreateSpaceHandler()
+    tx = { spaces: mockSpaceRepo } as unknown as CoreApiRepos
   })
 
   it('should create and persist a space with the requested visibility, returning its id', async () => {
     const command = new CreateSpaceCommand('org-1', 'Engineering', 'PRIVATE')
 
-    const spaceId = await handler.execute(command)
+    const spaceId = await handler.execute(command, tx)
 
     expect(mockSpaceRepo.save).toHaveBeenCalledTimes(1)
     const savedSpace = mockSpaceRepo.save.mock.calls[0][0]

@@ -1,20 +1,12 @@
-import { Injectable } from '@nestjs/common'
 import type { Prisma } from '@/generated'
-import { PrismaService } from '@/infrastructure/database/prisma/prisma.service'
-import { getTx } from '@distributed-social-platform/shared-kernel'
 import { requireTenantId } from '@/common/tenant/tenant.context'
 import type { Follow } from '../../domain/entities/follow.entity'
 import type { FollowTargetType } from '../../domain/entities/follow.entity'
 import type { IFollowRepository } from '../../domain/repositories/follow.repository'
 import { FollowMapper } from '../mappers/follow.mapper'
 
-@Injectable()
 export class PrismaFollowRepository implements IFollowRepository {
-  constructor(private readonly prisma: PrismaService) {}
-
-  private get client(): Prisma.TransactionClient {
-    return getTx<Prisma.TransactionClient>() ?? this.prisma.client
-  }
+  constructor(private readonly client: Prisma.TransactionClient) {}
 
   async add(follow: Follow): Promise<void> {
     const data = FollowMapper.toPersistence(follow)

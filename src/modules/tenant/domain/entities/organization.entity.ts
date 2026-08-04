@@ -62,4 +62,8 @@ export class Organization {
   get isDeleted() {
     return this._deletedAt !== null
   }
+
+  softDelete(): void {
+    this._deletedAt = new Date()
+  }
 }

@@ -1,3 +1,4 @@
+import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
 import type { IKnowledgeItemRepository } from '@/modules/knowledge/domain/repositories/knowledge-item.repository'
 import type { IVoteRepository } from '@/modules/engagement/domain/repositories/vote.repository'
 import { Vote } from '@/modules/engagement/domain/entities/vote.entity'
@@ -11,6 +12,7 @@ jest.mock('uuid', () => ({
 
 describe('CastVoteHandler', () => {
   let handler: CastVoteHandler
+  let tx: CoreApiRepos
   let mockItemRepo: jest.Mocked<IKnowledgeItemRepository>
   let mockVoteRepo: jest.Mocked<IVoteRepository>
 
@@ -28,13 +30,14 @@ describe('CastVoteHandler', () => {
       removeByItemAndUser: jest.fn(),
     } as unknown as jest.Mocked<IVoteRepository>
 
-    handler = new CastVoteHandler(mockItemRepo, mockVoteRepo)
+    handler = new CastVoteHandler()
+    tx = { items: mockItemRepo, votes: mockVoteRepo } as unknown as CoreApiRepos
   })
 
   it('should throw KnowledgeItemNotFoundError when the target item does not exist', async () => {
     mockItemRepo.findById.mockResolvedValueOnce(null)
 
-    await expect(handler.execute(new CastVoteCommand('item-1', 'user-1', 1))).rejects.toThrow(
+    await expect(handler.execute(new CastVoteCommand('item-1', 'user-1', 1), tx)).rejects.toThrow(
       KnowledgeItemNotFoundError,
     )
   })
@@ -43,7 +46,7 @@ describe('CastVoteHandler', () => {
     mockItemRepo.findById.mockResolvedValueOnce({ orgId: 'org-1' } as never)
     mockVoteRepo.findByItemAndUser.mockResolvedValueOnce(null)
 
-    await handler.execute(new CastVoteCommand('item-1', 'user-1', 1))
+    await handler.execute(new CastVoteCommand('item-1', 'user-1', 1), tx)
 
     const upserted = mockVoteRepo.upsert.mock.calls[0][0]
     expect(upserted.orgId).toBe('org-1')
@@ -52,10 +55,15 @@ describe('CastVoteHandler', () => {
 
   it('should change the value in place (not create a duplicate) when the user already voted', async () => {
     mockItemRepo.findById.mockResolvedValueOnce({ orgId: 'org-1' } as never)
-    const existingVote = Vote.create({ orgId: 'org-1', itemId: 'item-1', userId: 'user-1', value: 1 })
+    const existingVote = Vote.create({
+      orgId: 'org-1',
+      itemId: 'item-1',
+      userId: 'user-1',
+      value: 1,
+    })
     mockVoteRepo.findByItemAndUser.mockResolvedValueOnce(existingVote)
 
-    await handler.execute(new CastVoteCommand('item-1', 'user-1', -1))
+    await handler.execute(new CastVoteCommand('item-1', 'user-1', -1), tx)
 
     expect(existingVote.value).toBe(-1)
     expect(mockVoteRepo.upsert).toHaveBeenCalledWith(existingVote)

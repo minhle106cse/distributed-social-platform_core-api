@@ -1,3 +1,4 @@
+import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
 import type { IKnowledgeItemRepository } from '@/modules/knowledge/domain/repositories/knowledge-item.repository'
 import type { IBookmarkRepository } from '@/modules/engagement/domain/repositories/bookmark.repository'
 import { KnowledgeItemNotFoundError } from '@/common/errors/knowledge.error'
@@ -10,6 +11,7 @@ jest.mock('uuid', () => ({
 
 describe('AddBookmarkHandler', () => {
   let handler: AddBookmarkHandler
+  let tx: CoreApiRepos
   let mockItemRepo: jest.Mocked<IKnowledgeItemRepository>
   let mockBookmarkRepo: jest.Mocked<IBookmarkRepository>
 
@@ -26,21 +28,22 @@ describe('AddBookmarkHandler', () => {
       remove: jest.fn(),
     } as unknown as jest.Mocked<IBookmarkRepository>
 
-    handler = new AddBookmarkHandler(mockItemRepo, mockBookmarkRepo)
+    handler = new AddBookmarkHandler()
+    tx = { items: mockItemRepo, bookmarks: mockBookmarkRepo } as unknown as CoreApiRepos
   })
 
   it('should throw KnowledgeItemNotFoundError when the item does not exist', async () => {
     mockItemRepo.findById.mockResolvedValueOnce(null)
 
-    await expect(handler.execute(new AddBookmarkCommand('missing-item', 'user-1'))).rejects.toThrow(
-      KnowledgeItemNotFoundError,
-    )
+    await expect(
+      handler.execute(new AddBookmarkCommand('missing-item', 'user-1'), tx),
+    ).rejects.toThrow(KnowledgeItemNotFoundError)
   })
 
   it('should create a bookmark scoped to the item org', async () => {
     mockItemRepo.findById.mockResolvedValueOnce({ orgId: 'org-1' } as never)
 
-    await handler.execute(new AddBookmarkCommand('item-1', 'user-1'))
+    await handler.execute(new AddBookmarkCommand('item-1', 'user-1'), tx)
 
     const savedBookmark = mockBookmarkRepo.add.mock.calls[0][0]
     expect(savedBookmark.orgId).toBe('org-1')

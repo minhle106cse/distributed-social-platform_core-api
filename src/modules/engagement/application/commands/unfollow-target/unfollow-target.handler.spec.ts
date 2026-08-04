@@ -1,5 +1,6 @@
+import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
 import type { IFollowRepository } from '@/modules/engagement/domain/repositories/follow.repository'
-import type { IOutboxRepository } from '@/modules/outbox/domain/repositories/outbox.repository'
+import type { IOutboxAppender } from '@/infrastructure/outbox/outbox.repository'
 import { Follow } from '@/modules/engagement/domain/entities/follow.entity'
 import { runWithTenantContext, setTenantId } from '@/common/tenant/tenant.context'
 import { UnfollowTargetHandler } from './unfollow-target.handler'
@@ -7,8 +8,9 @@ import { UnfollowTargetCommand } from './unfollow-target.command'
 
 describe('UnfollowTargetHandler', () => {
   let handler: UnfollowTargetHandler
+  let tx: CoreApiRepos
   let mockFollowRepo: jest.Mocked<IFollowRepository>
-  let mockOutboxRepo: jest.Mocked<IOutboxRepository>
+  let mockOutboxRepo: jest.Mocked<IOutboxAppender>
 
   beforeEach(() => {
     mockFollowRepo = {
@@ -18,15 +20,16 @@ describe('UnfollowTargetHandler', () => {
 
     mockOutboxRepo = {
       append: jest.fn(),
-    } as unknown as jest.Mocked<IOutboxRepository>
+    } as unknown as jest.Mocked<IOutboxAppender>
 
-    handler = new UnfollowTargetHandler(mockFollowRepo, mockOutboxRepo)
+    handler = new UnfollowTargetHandler()
+    tx = { follows: mockFollowRepo, outbox: mockOutboxRepo } as unknown as CoreApiRepos
   })
 
   it('should remove the follow and append a FOLLOW_REMOVED event with the SAME partition key FollowCreated would use (ordering guarantee)', async () => {
     await runWithTenantContext(() => {
       setTenantId('org-1')
-      return handler.execute(new UnfollowTargetCommand('user-1', 'SPACE', 'space-1'))
+      return handler.execute(new UnfollowTargetCommand('user-1', 'SPACE', 'space-1'), tx)
     })
 
     expect(mockFollowRepo.remove).toHaveBeenCalledWith('user-1', 'SPACE', 'space-1')
@@ -40,7 +43,7 @@ describe('UnfollowTargetHandler', () => {
 
   it('should throw when tenant context is missing', async () => {
     await expect(
-      handler.execute(new UnfollowTargetCommand('user-1', 'SPACE', 'space-1')),
+      handler.execute(new UnfollowTargetCommand('user-1', 'SPACE', 'space-1'), tx),
     ).rejects.toThrow('Tenant context is not set')
   })
 })

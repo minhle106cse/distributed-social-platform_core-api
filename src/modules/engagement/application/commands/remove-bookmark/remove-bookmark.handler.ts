@@ -1,16 +1,19 @@
-import { Injectable, Inject } from '@nestjs/common'
-import type { ICommandHandler } from '@distributed-social-platform/shared-kernel'
+import { Injectable } from '@nestjs/common'
+import type { ITransactionalCommandHandler } from '@distributed-social-platform/shared-kernel'
+import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
 import { CommandHandler } from '@/infrastructure/cqrs/decorators/command-handler.decorator'
-import { BOOKMARK_REPOSITORY } from '@/modules/engagement/domain/repositories/bookmark.repository'
-import type { IBookmarkRepository } from '@/modules/engagement/domain/repositories/bookmark.repository'
 import { RemoveBookmarkCommand } from './remove-bookmark.command'
 
 @Injectable()
 @CommandHandler(RemoveBookmarkCommand)
-export class RemoveBookmarkHandler implements ICommandHandler<RemoveBookmarkCommand, void> {
-  constructor(@Inject(BOOKMARK_REPOSITORY) private readonly bookmarkRepo: IBookmarkRepository) {}
+export class RemoveBookmarkHandler implements ITransactionalCommandHandler<
+  RemoveBookmarkCommand,
+  void,
+  CoreApiRepos
+> {
+  readonly kind = 'transactional' as const
 
-  async execute(command: RemoveBookmarkCommand): Promise<void> {
-    await this.bookmarkRepo.remove(command.itemId, command.userId)
+  async execute(command: RemoveBookmarkCommand, tx: CoreApiRepos): Promise<void> {
+    await tx.bookmarks.remove(command.itemId, command.userId)
   }
 }

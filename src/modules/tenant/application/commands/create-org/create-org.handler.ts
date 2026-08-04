@@ -1,29 +1,23 @@
-import { Injectable, Inject } from '@nestjs/common'
-import type { ICommandHandler } from '@distributed-social-platform/shared-kernel'
+import { Injectable } from '@nestjs/common'
+import type { ITransactionalCommandHandler } from '@distributed-social-platform/shared-kernel'
+import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
 import { CommandHandler } from '@/infrastructure/cqrs/decorators/command-handler.decorator'
 import { Organization } from '@/modules/tenant/domain/entities/organization.entity'
 import { Membership } from '@/modules/tenant/domain/entities/membership.entity'
-import { ORGANIZATION_REPOSITORY } from '@/modules/tenant/domain/repositories/organization.repository'
-import type { IOrganizationRepository } from '@/modules/tenant/domain/repositories/organization.repository'
-import { MEMBERSHIP_REPOSITORY } from '@/modules/tenant/domain/repositories/membership.repository'
-import type { IMembershipRepository } from '@/modules/tenant/domain/repositories/membership.repository'
-import { ORG_ROLE_PERMISSION_REPOSITORY } from '@/modules/tenant/domain/repositories/org-role-permission.repository'
-import type { IOrgRolePermissionRepository } from '@/modules/tenant/domain/repositories/org-role-permission.repository'
 import { OrgSlugAlreadyTakenError } from '@/common/errors/tenant.error'
 import { CreateOrgCommand } from './create-org.command'
 
 @Injectable()
 @CommandHandler(CreateOrgCommand)
-export class CreateOrgHandler implements ICommandHandler<CreateOrgCommand, string> {
-  constructor(
-    @Inject(ORGANIZATION_REPOSITORY) private readonly orgRepo: IOrganizationRepository,
-    @Inject(MEMBERSHIP_REPOSITORY) private readonly membershipRepo: IMembershipRepository,
-    @Inject(ORG_ROLE_PERMISSION_REPOSITORY)
-    private readonly rolePermissionRepo: IOrgRolePermissionRepository,
-  ) {}
+export class CreateOrgHandler implements ITransactionalCommandHandler<
+  CreateOrgCommand,
+  string,
+  CoreApiRepos
+> {
+  readonly kind = 'transactional' as const
 
-  async execute(command: CreateOrgCommand): Promise<string> {
-    const existing = await this.orgRepo.findBySlug(command.slug)
+  async execute(command: CreateOrgCommand, tx: CoreApiRepos): Promise<string> {
+    const existing = await tx.organizations.findBySlug(command.slug)
     if (existing) throw new OrgSlugAlreadyTakenError(command.slug)
 
     // Entity tự sinh id (v7) — KHÔNG nhận id từ caller. org.id là nguồn duy nhất.
@@ -37,11 +31,11 @@ export class CreateOrgHandler implements ICommandHandler<CreateOrgCommand, strin
       userId: command.ownerUserId,
     })
 
-    await this.orgRepo.save(org)
-    await this.membershipRepo.save(ownerMembership)
+    await tx.organizations.save(org)
+    await tx.memberships.save(ownerMembership)
     // Seed default role→permission mapping cho ADMIN/MEMBER/GUEST.
     // OWNER không cần seed — OrgGuard cấp toàn bộ quyền cho OWNER (implicit).
-    await this.rolePermissionRepo.seedDefaults(org.id)
+    await tx.rolePermissions.seedDefaults(org.id)
 
     return org.id
   }

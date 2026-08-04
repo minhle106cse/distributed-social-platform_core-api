@@ -1,38 +1,30 @@
-import { Injectable, Inject } from '@nestjs/common'
-import type { ICommandHandler } from '@distributed-social-platform/shared-kernel'
+import { Injectable } from '@nestjs/common'
+import type { ITransactionalCommandHandler } from '@distributed-social-platform/shared-kernel'
 import { FollowCreatedEvent } from '@distributed-social-platform/shared-kernel'
+import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
 import { CommandHandler } from '@/infrastructure/cqrs/decorators/command-handler.decorator'
 import { Follow } from '@/modules/engagement/domain/entities/follow.entity'
-import { KNOWLEDGE_ITEM_REPOSITORY } from '@/modules/knowledge/domain/repositories/knowledge-item.repository'
-import type { IKnowledgeItemRepository } from '@/modules/knowledge/domain/repositories/knowledge-item.repository'
-import { SPACE_REPOSITORY } from '@/modules/tenant/domain/repositories/space.repository'
-import type { ISpaceRepository } from '@/modules/tenant/domain/repositories/space.repository'
-import { FOLLOW_REPOSITORY } from '@/modules/engagement/domain/repositories/follow.repository'
-import type { IFollowRepository } from '@/modules/engagement/domain/repositories/follow.repository'
-import { OUTBOX_REPOSITORY } from '@/modules/outbox/domain/repositories/outbox.repository'
-import type { IOutboxRepository } from '@/modules/outbox/domain/repositories/outbox.repository'
 import { requireTenantId } from '@/common/tenant/tenant.context'
 import { FollowTargetNotFoundError } from '@/common/errors/engagement.error'
 import { FollowTargetCommand } from './follow-target.command'
 
 @Injectable()
 @CommandHandler(FollowTargetCommand)
-export class FollowTargetHandler implements ICommandHandler<FollowTargetCommand, void> {
-  constructor(
-    @Inject(KNOWLEDGE_ITEM_REPOSITORY) private readonly itemRepo: IKnowledgeItemRepository,
-    @Inject(SPACE_REPOSITORY) private readonly spaceRepo: ISpaceRepository,
-    @Inject(FOLLOW_REPOSITORY) private readonly followRepo: IFollowRepository,
-    @Inject(OUTBOX_REPOSITORY) private readonly outboxRepo: IOutboxRepository,
-  ) {}
+export class FollowTargetHandler implements ITransactionalCommandHandler<
+  FollowTargetCommand,
+  void,
+  CoreApiRepos
+> {
+  readonly kind = 'transactional' as const
 
-  async execute(command: FollowTargetCommand): Promise<void> {
+  async execute(command: FollowTargetCommand, tx: CoreApiRepos): Promise<void> {
     const orgId = requireTenantId()
 
     if (command.targetType === 'DOCUMENT') {
-      const item = await this.itemRepo.findById(command.targetId)
+      const item = await tx.items.findById(command.targetId)
       if (!item) throw new FollowTargetNotFoundError()
     } else {
-      const space = await this.spaceRepo.findById(command.targetId)
+      const space = await tx.spaces.findById(command.targetId)
       if (!space) throw new FollowTargetNotFoundError()
     }
 
@@ -42,9 +34,9 @@ export class FollowTargetHandler implements ICommandHandler<FollowTargetCommand,
       targetType: command.targetType,
       targetId: command.targetId,
     })
-    await this.followRepo.add(follow)
+    await tx.follows.add(follow)
 
-    await this.outboxRepo.append(
+    await tx.outbox.append(
       FollowCreatedEvent.create({
         // Partition key = follow relationship identity (NOT follow.id) so this
         // event stays ordered with its FollowRemoved counterpart. See Follow.streamKey.

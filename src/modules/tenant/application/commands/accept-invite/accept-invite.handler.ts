@@ -1,11 +1,8 @@
-import { Injectable, Inject } from '@nestjs/common'
-import type { ICommandHandler } from '@distributed-social-platform/shared-kernel'
+import { Injectable } from '@nestjs/common'
+import type { ITransactionalCommandHandler } from '@distributed-social-platform/shared-kernel'
+import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
 import { CommandHandler } from '@/infrastructure/cqrs/decorators/command-handler.decorator'
 import { Membership } from '@/modules/tenant/domain/entities/membership.entity'
-import { ORG_INVITE_REPOSITORY } from '@/modules/tenant/domain/repositories/org-invite.repository'
-import type { IOrgInviteRepository } from '@/modules/tenant/domain/repositories/org-invite.repository'
-import { MEMBERSHIP_REPOSITORY } from '@/modules/tenant/domain/repositories/membership.repository'
-import type { IMembershipRepository } from '@/modules/tenant/domain/repositories/membership.repository'
 import {
   InviteNotFoundError,
   InviteExpiredError,
@@ -16,22 +13,20 @@ import { AcceptInviteCommand } from './accept-invite.command'
 
 @Injectable()
 @CommandHandler(AcceptInviteCommand)
-export class AcceptInviteHandler implements ICommandHandler<
+export class AcceptInviteHandler implements ITransactionalCommandHandler<
   AcceptInviteCommand,
-  { orgId: string; role: string }
+  { orgId: string; role: string },
+  CoreApiRepos
 > {
-  constructor(
-    @Inject(ORG_INVITE_REPOSITORY) private readonly inviteRepo: IOrgInviteRepository,
-    @Inject(MEMBERSHIP_REPOSITORY) private readonly membershipRepo: IMembershipRepository,
-  ) {}
+  readonly kind = 'transactional' as const
 
-  async execute(command: AcceptInviteCommand) {
-    const invite = await this.inviteRepo.findByToken(command.token)
+  async execute(command: AcceptInviteCommand, tx: CoreApiRepos) {
+    const invite = await tx.invites.findByToken(command.token)
     if (!invite) throw new InviteNotFoundError()
     if (invite.isExpired()) throw new InviteExpiredError()
     if (invite.isUsed()) throw new InviteAlreadyUsedError()
 
-    const existing = await this.membershipRepo.findByOrgAndUser(invite.orgId, command.userId)
+    const existing = await tx.memberships.findByOrgAndUser(invite.orgId, command.userId)
     if (existing) throw new AlreadyMemberError()
 
     const membership = Membership.createMember({
@@ -40,9 +35,9 @@ export class AcceptInviteHandler implements ICommandHandler<
       role: invite.role,
     })
 
-    await this.membershipRepo.save(membership)
+    await tx.memberships.save(membership)
     invite.accept(command.userId)
-    await this.inviteRepo.save(invite)
+    await tx.invites.save(invite)
 
     return { orgId: invite.orgId, role: invite.role }
   }

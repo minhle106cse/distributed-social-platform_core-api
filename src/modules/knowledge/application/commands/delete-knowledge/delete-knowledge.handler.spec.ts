@@ -1,3 +1,4 @@
+import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
 import type { IKnowledgeItemRepository } from '@/modules/knowledge/domain/repositories/knowledge-item.repository'
 import { KnowledgeItem } from '@/modules/knowledge/domain/entities/knowledge-item.entity'
 import { KnowledgeItemNotFoundError } from '@/common/errors/knowledge.error'
@@ -10,6 +11,7 @@ jest.mock('uuid', () => ({
 
 describe('DeleteKnowledgeHandler', () => {
   let handler: DeleteKnowledgeHandler
+  let tx: CoreApiRepos
   let mockItemRepo: jest.Mocked<IKnowledgeItemRepository>
 
   beforeEach(() => {
@@ -20,13 +22,14 @@ describe('DeleteKnowledgeHandler', () => {
       update: jest.fn(),
     } as unknown as jest.Mocked<IKnowledgeItemRepository>
 
-    handler = new DeleteKnowledgeHandler(mockItemRepo)
+    handler = new DeleteKnowledgeHandler()
+    tx = { items: mockItemRepo } as unknown as CoreApiRepos
   })
 
   it('should throw KnowledgeItemNotFoundError when the item does not exist', async () => {
     mockItemRepo.findById.mockResolvedValueOnce(null)
 
-    await expect(handler.execute(new DeleteKnowledgeCommand('missing-id'))).rejects.toThrow(
+    await expect(handler.execute(new DeleteKnowledgeCommand('missing-id'), tx)).rejects.toThrow(
       KnowledgeItemNotFoundError,
     )
   })
@@ -42,7 +45,7 @@ describe('DeleteKnowledgeHandler', () => {
     })
     mockItemRepo.findById.mockResolvedValueOnce(item)
 
-    await handler.execute(new DeleteKnowledgeCommand('item-1'))
+    await handler.execute(new DeleteKnowledgeCommand('item-1'), tx)
 
     expect(item.isDeleted).toBe(true)
     expect(mockItemRepo.update).toHaveBeenCalledWith(item)

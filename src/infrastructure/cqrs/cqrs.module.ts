@@ -5,30 +5,38 @@ import {
   CommandBus,
   QueryBus,
   EventBus,
-  LoggingMiddleware,
-  RetryMiddleware,
-  TransactionMiddleware,
   COMMAND_HANDLER_METADATA,
   QUERY_HANDLER_METADATA,
   EVENT_HANDLER_METADATA,
+  TX_RUNNER,
+  SAGA_COMPENSATION_STORE,
   type ICommandHandler,
   type IQueryHandler,
   type IEventHandler,
-  TRANSACTION_MANAGER,
-  type ITransactionManager,
+  type ITxRunner,
+  type ISagaCompensationStore,
 } from '@distributed-social-platform/shared-kernel'
-import {
-  isPrismaTransientError,
-  recordDbTransientErrorObservation,
-} from '../database/prisma/prisma-transient-error'
+import { transientError } from '../database/prisma/prisma-transient-error'
+import type { CoreApiRepos } from '../database/prisma/core-api-repos.factory'
 
+/**
+ * The command pipeline (logging → retry → transaction) is no longer assembled
+ * here: it lives inside CommandBus as a fixed sequence, so it cannot be wired in
+ * the wrong order (ADR-0001 §2.3). This module only builds the buses and
+ * auto-discovers handlers.
+ */
 @Global()
 @Module({
   imports: [DiscoveryModule],
   providers: [
     {
       provide: CommandBus,
-      useValue: new CommandBus(),
+      useFactory: (
+        logger: PinoLogger,
+        txRunner: ITxRunner<CoreApiRepos>,
+        compensationStore: ISagaCompensationStore,
+      ) => new CommandBus(logger, txRunner, transientError, undefined, compensationStore),
+      inject: [PinoLogger, TX_RUNNER, SAGA_COMPENSATION_STORE],
     },
     {
       provide: QueryBus,
@@ -40,30 +48,6 @@ import {
       useFactory: (logger: PinoLogger) => new EventBus(logger),
       inject: [PinoLogger],
     },
-    {
-      provide: LoggingMiddleware,
-      useFactory: (logger: PinoLogger) => new LoggingMiddleware(logger),
-      inject: [PinoLogger],
-    },
-    {
-      provide: RetryMiddleware,
-      useFactory: (logger: PinoLogger) =>
-        new RetryMiddleware(
-          logger,
-          isPrismaTransientError,
-          undefined,
-          undefined,
-          undefined,
-          recordDbTransientErrorObservation,
-        ),
-      inject: [PinoLogger],
-    },
-    {
-      provide: TransactionMiddleware,
-      useFactory: (transactionManager: ITransactionManager, logger: PinoLogger) =>
-        new TransactionMiddleware(transactionManager, logger),
-      inject: [TRANSACTION_MANAGER, PinoLogger],
-    },
   ],
   exports: [CommandBus, QueryBus, EventBus],
 })
@@ -72,17 +56,14 @@ export class CqrsModule implements OnApplicationBootstrap {
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
     private readonly eventBus: EventBus,
-    private readonly loggingMiddleware: LoggingMiddleware,
-    private readonly retryMiddleware: RetryMiddleware,
-    private readonly transactionMiddleware: TransactionMiddleware,
     private readonly discoveryService: DiscoveryService,
   ) {}
 
+  /**
+   * Runs AFTER every module's onModuleInit — discovers and registers every
+   * command/query/event handler in the app.
+   */
   onApplicationBootstrap() {
-    // 1. Setup middlewares for CommandBus
-    this.commandBus.use(this.loggingMiddleware, this.retryMiddleware, this.transactionMiddleware)
-
-    // 2. Auto-discover handlers
     const providers = this.discoveryService.getProviders()
 
     providers

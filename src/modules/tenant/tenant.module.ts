@@ -1,11 +1,9 @@
 import { Module } from '@nestjs/common'
-import { ORGANIZATION_REPOSITORY } from './domain/repositories/organization.repository'
-import { MEMBERSHIP_REPOSITORY } from './domain/repositories/membership.repository'
-import { SPACE_REPOSITORY } from './domain/repositories/space.repository'
-import { ORG_ROLE_PERMISSION_REPOSITORY } from './domain/repositories/org-role-permission.repository'
-import type { IOrgRolePermissionRepository } from './domain/repositories/org-role-permission.repository'
+import { ORG_ROLE_PERMISSION_READER } from './domain/repositories/org-role-permission.repository'
+import type { IOrgRolePermissionReader } from './domain/repositories/org-role-permission.repository'
 import { MEMBERSHIP_QUERY_REPOSITORY } from './application/queries/membership.query-repository'
 import { CreateOrgHandler } from './application/commands/create-org/create-org.handler'
+import { ArchiveOrgHandler } from './application/commands/archive-org/archive-org.handler'
 import { CreateSpaceHandler } from './application/commands/create-space/create-space.handler'
 import { UpdateMemberRoleHandler } from './application/commands/update-member-role/update-member-role.handler'
 import { UpdateRolePermissionsHandler } from './application/commands/update-role-permissions/update-role-permissions.handler'
@@ -15,35 +13,27 @@ import { GetOrgMembersHandler } from './application/queries/get-org-members/get-
 import { ListMyOrgsHandler } from './application/queries/list-my-orgs/list-my-orgs.handler'
 import { GetRolePermissionsHandler } from './application/queries/get-role-permissions/get-role-permissions.handler'
 import { CheckMembershipHandler } from './application/queries/check-membership/check-membership.handler'
-import { PrismaOrganizationRepository } from './infrastructure/repositories/prisma-organization.repository'
-import { PrismaMembershipRepository } from './infrastructure/repositories/prisma-membership.repository'
-import { PrismaSpaceRepository } from './infrastructure/repositories/prisma-space.repository'
-import { PrismaOrgRolePermissionRepository } from './infrastructure/repositories/prisma-org-role-permission.repository'
 import { PrismaMembershipQueryRepository } from './infrastructure/repositories/prisma-membership.query-repository'
-import { PrismaOrgInviteRepository } from './infrastructure/repositories/prisma-org-invite.repository'
+import { PrismaOrgRolePermissionQueryRepository } from './infrastructure/repositories/prisma-org-role-permission.query-repository'
 import { OrgController } from './presentation/controllers/org.controller'
 import { OrgGuard } from '@/infrastructure/http/guards/org.guard'
-import { ORG_INVITE_REPOSITORY } from './domain/repositories/org-invite.repository'
 import { OrgPermissionResolver } from './domain/services/resolve-org-permissions'
 
 @Module({
   controllers: [OrgController],
-  exports: [
-    OrgGuard,
-    OrgPermissionResolver,
-    MEMBERSHIP_REPOSITORY,
-    ORG_ROLE_PERMISSION_REPOSITORY,
-    SPACE_REPOSITORY,
-  ],
+  exports: [OrgGuard, OrgPermissionResolver, MEMBERSHIP_QUERY_REPOSITORY],
   providers: [
     OrgGuard,
     {
+      // Resolves permissions for a guard, i.e. before any transaction exists —
+      // so it takes the READER, not the write repository (ADR-0001).
       provide: OrgPermissionResolver,
-      useFactory: (repo: IOrgRolePermissionRepository) => new OrgPermissionResolver(repo),
-      inject: [ORG_ROLE_PERMISSION_REPOSITORY],
+      useFactory: (reader: IOrgRolePermissionReader) => new OrgPermissionResolver(reader),
+      inject: [ORG_ROLE_PERMISSION_READER],
     },
     // Command handlers
     CreateOrgHandler,
+    ArchiveOrgHandler,
     CreateSpaceHandler,
     UpdateMemberRoleHandler,
     UpdateRolePermissionsHandler,
@@ -54,14 +44,9 @@ import { OrgPermissionResolver } from './domain/services/resolve-org-permissions
     ListMyOrgsHandler,
     GetRolePermissionsHandler,
     CheckMembershipHandler,
-    // Write repositories
-    { provide: ORGANIZATION_REPOSITORY, useClass: PrismaOrganizationRepository },
-    { provide: MEMBERSHIP_REPOSITORY, useClass: PrismaMembershipRepository },
-    { provide: SPACE_REPOSITORY, useClass: PrismaSpaceRepository },
-    { provide: ORG_ROLE_PERMISSION_REPOSITORY, useClass: PrismaOrgRolePermissionRepository },
-    // Read repositories (Query side)
+    // Read repositories (query side) — plain client, no transaction
     { provide: MEMBERSHIP_QUERY_REPOSITORY, useClass: PrismaMembershipQueryRepository },
-    { provide: ORG_INVITE_REPOSITORY, useClass: PrismaOrgInviteRepository },
+    { provide: ORG_ROLE_PERMISSION_READER, useClass: PrismaOrgRolePermissionQueryRepository },
   ],
 })
 export class TenantModule {}

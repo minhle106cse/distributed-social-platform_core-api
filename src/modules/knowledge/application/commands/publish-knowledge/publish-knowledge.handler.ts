@@ -1,11 +1,8 @@
-import { Injectable, Inject } from '@nestjs/common'
-import type { ICommandHandler } from '@distributed-social-platform/shared-kernel'
+import { Injectable } from '@nestjs/common'
+import type { ITransactionalCommandHandler } from '@distributed-social-platform/shared-kernel'
 import { KnowledgePublishedEvent } from '@distributed-social-platform/shared-kernel'
+import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
 import { CommandHandler } from '@/infrastructure/cqrs/decorators/command-handler.decorator'
-import { KNOWLEDGE_ITEM_REPOSITORY } from '@/modules/knowledge/domain/repositories/knowledge-item.repository'
-import type { IKnowledgeItemRepository } from '@/modules/knowledge/domain/repositories/knowledge-item.repository'
-import { OUTBOX_REPOSITORY } from '@/modules/outbox/domain/repositories/outbox.repository'
-import type { IOutboxRepository } from '@/modules/outbox/domain/repositories/outbox.repository'
 import {
   KnowledgeItemNotFoundError,
   InvalidKnowledgeStateError,
@@ -14,14 +11,15 @@ import { PublishKnowledgeCommand } from './publish-knowledge.command'
 
 @Injectable()
 @CommandHandler(PublishKnowledgeCommand)
-export class PublishKnowledgeHandler implements ICommandHandler<PublishKnowledgeCommand, void> {
-  constructor(
-    @Inject(KNOWLEDGE_ITEM_REPOSITORY) private readonly itemRepo: IKnowledgeItemRepository,
-    @Inject(OUTBOX_REPOSITORY) private readonly outboxRepo: IOutboxRepository,
-  ) {}
+export class PublishKnowledgeHandler implements ITransactionalCommandHandler<
+  PublishKnowledgeCommand,
+  void,
+  CoreApiRepos
+> {
+  readonly kind = 'transactional' as const
 
-  async execute(command: PublishKnowledgeCommand): Promise<void> {
-    const item = await this.itemRepo.findById(command.id)
+  async execute(command: PublishKnowledgeCommand, tx: CoreApiRepos): Promise<void> {
+    const item = await tx.items.findById(command.id)
     if (!item) throw new KnowledgeItemNotFoundError()
 
     if (item.status !== 'DRAFT') {
@@ -29,9 +27,9 @@ export class PublishKnowledgeHandler implements ICommandHandler<PublishKnowledge
     }
 
     item.publish()
-    await this.itemRepo.update(item)
+    await tx.items.update(item)
 
-    await this.outboxRepo.append(
+    await tx.outbox.append(
       KnowledgePublishedEvent.create({
         aggregateId: item.id,
         orgId: item.orgId,

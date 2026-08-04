@@ -1,3 +1,4 @@
+import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
 import type { IOrganizationRepository } from '@/modules/tenant/domain/repositories/organization.repository'
 import type { IMembershipRepository } from '@/modules/tenant/domain/repositories/membership.repository'
 import type { IOrgRolePermissionRepository } from '@/modules/tenant/domain/repositories/org-role-permission.repository'
@@ -8,6 +9,7 @@ import { CreateOrgCommand } from './create-org.command'
 
 describe('CreateOrgHandler', () => {
   let handler: CreateOrgHandler
+  let tx: CoreApiRepos
   let mockOrgRepo: jest.Mocked<IOrganizationRepository>
   let mockMembershipRepo: jest.Mocked<IMembershipRepository>
   let mockRolePermissionRepo: jest.Mocked<IOrgRolePermissionRepository>
@@ -31,14 +33,19 @@ describe('CreateOrgHandler', () => {
       findByOrgAndRole: jest.fn(),
     } as unknown as jest.Mocked<IOrgRolePermissionRepository>
 
-    handler = new CreateOrgHandler(mockOrgRepo, mockMembershipRepo, mockRolePermissionRepo)
+    handler = new CreateOrgHandler()
+    tx = {
+      organizations: mockOrgRepo,
+      memberships: mockMembershipRepo,
+      rolePermissions: mockRolePermissionRepo,
+    } as unknown as CoreApiRepos
   })
 
   it('should create the org, grant the caller OWNER, and seed default role permissions', async () => {
     mockOrgRepo.findBySlug.mockResolvedValueOnce(null)
     const command = new CreateOrgCommand('Acme', 'acme', 'user-1')
 
-    const orgId = await handler.execute(command)
+    const orgId = await handler.execute(command, tx)
 
     expect(mockOrgRepo.save).toHaveBeenCalledTimes(1)
     const savedOrg = mockOrgRepo.save.mock.calls[0][0]
@@ -57,7 +64,7 @@ describe('CreateOrgHandler', () => {
     mockOrgRepo.findBySlug.mockResolvedValueOnce({ id: 'existing-org' } as never)
     const command = new CreateOrgCommand('Acme', 'acme', 'user-1')
 
-    await expect(handler.execute(command)).rejects.toThrow(OrgSlugAlreadyTakenError)
+    await expect(handler.execute(command, tx)).rejects.toThrow(OrgSlugAlreadyTakenError)
 
     expect(mockOrgRepo.save).not.toHaveBeenCalled()
     expect(mockMembershipRepo.save).not.toHaveBeenCalled()

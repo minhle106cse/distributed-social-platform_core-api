@@ -328,3 +328,36 @@ model IdempotencyRecord {
   @@index([expiresAt])
   @@map("idempotency_records")
 }
+
+/// Durable store for saga compensation steps that failed on their first
+/// (in-process) attempt — the same "log is for tracing, not for storage"
+/// principle as OutboxEvent, applied to the one at-least-once path that didn't
+/// have one yet (review of ADR-0001, 2026-07-30). `actionType` + `payload`
+/// describe the compensation as DATA (not a closure) so a reaper in a
+/// different process/request can reconstruct and re-run it — see
+/// SagaCompensationRegistry for how `actionType` maps back to a runner.
+model SagaCompensation {
+  id          String                 @id @default(uuid(7))
+  sagaCommand String                 @map("saga_command") // e.g. 'ProvisionOrgCommand' — for triage
+  actionType  String                 @map("action_type") // key into SagaCompensationRegistry
+  payload     Json
+  status      SagaCompensationStatus @default(PENDING)
+  attempts    Int                    @default(0)
+  lastError   String?                @map("last_error")
+  createdAt   DateTime               @default(now()) @map("created_at")
+  processedAt DateTime?              @map("processed_at")
+  // Set when the reaper claims the row (PENDING → INFLIGHT). Lets a stale-claim
+  // sweep reset rows orphaned by a crash between claim and run (same pattern as
+  // OutboxEvent.claimedAt).
+  claimedAt   DateTime?              @map("claimed_at")
+
+  @@index([status, createdAt])
+  @@map("saga_compensations")
+}
+
+enum SagaCompensationStatus {
+  PENDING
+  INFLIGHT
+  DONE
+  FAILED_DLQ
+}

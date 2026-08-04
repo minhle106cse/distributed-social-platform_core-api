@@ -1,19 +1,11 @@
-import { Injectable } from '@nestjs/common'
 import type { Prisma } from '@/generated'
-import { PrismaService } from '@/infrastructure/database/prisma/prisma.service'
-import { getTx } from '@distributed-social-platform/shared-kernel'
 import { requireTenantId } from '@/common/tenant/tenant.context'
 import type { KnowledgeItem } from '../../domain/entities/knowledge-item.entity'
 import type { IKnowledgeItemRepository } from '../../domain/repositories/knowledge-item.repository'
 import { KnowledgeItemMapper } from '../mappers/knowledge-item.mapper'
 
-@Injectable()
 export class PrismaKnowledgeItemRepository implements IKnowledgeItemRepository {
-  constructor(private readonly prisma: PrismaService) {}
-
-  private get client(): Prisma.TransactionClient {
-    return getTx<Prisma.TransactionClient>() ?? this.prisma.client
-  }
+  constructor(private readonly client: Prisma.TransactionClient) {}
 
   async save(item: KnowledgeItem): Promise<void> {
     await this.client.knowledgeItem.create({ data: KnowledgeItemMapper.toPersistence(item) })

@@ -10,8 +10,8 @@ import { Reflector } from '@nestjs/core'
 import type { FastifyRequest } from 'fastify'
 import type { JwtPayload } from './jwt-auth.guard'
 import { ORG_PERMISSION_KEY } from '@/infrastructure/http/decorators/require-org-permission.decorator'
-import { MEMBERSHIP_REPOSITORY } from '@/modules/tenant/domain/repositories/membership.repository'
-import type { IMembershipRepository } from '@/modules/tenant/domain/repositories/membership.repository'
+import { MEMBERSHIP_QUERY_REPOSITORY } from '@/modules/tenant/application/queries/membership.query-repository'
+import type { IMembershipQueryRepository } from '@/modules/tenant/application/queries/membership.query-repository'
 import { OrgPermissionResolver } from '@/modules/tenant/domain/services/resolve-org-permissions'
 import type { OrgPermissionValue } from '@distributed-social-platform/shared-kernel'
 import type { OrgContext } from '@/infrastructure/http/types/org-context.interface'
@@ -20,8 +20,10 @@ import { setTenantId } from '@/common/tenant/tenant.context'
 @Injectable()
 export class OrgGuard implements CanActivate {
   constructor(
-    @Inject(MEMBERSHIP_REPOSITORY)
-    private readonly membershipRepo: IMembershipRepository,
+    // Read side: a guard runs before the handler that would open a transaction,
+    // so it cannot reach the write repository (ADR-0001).
+    @Inject(MEMBERSHIP_QUERY_REPOSITORY)
+    private readonly membershipQueryRepo: IMembershipQueryRepository,
     private readonly reflector: Reflector,
     private readonly permissionResolver: OrgPermissionResolver,
   ) {}
@@ -37,10 +39,9 @@ export class OrgGuard implements CanActivate {
     const orgId = request.headers['x-org-id'] as string | undefined
     if (!orgId) throw new ForbiddenException('X-Org-Id header is required')
 
-    const membership = await this.membershipRepo.findByOrgAndUser(orgId, userId)
-    if (!membership) throw new ForbiddenException('You are not a member of this organization')
+    const orgRole = await this.membershipQueryRepo.findRoleByOrgAndUser(orgId, userId)
+    if (!orgRole) throw new ForbiddenException('You are not a member of this organization')
 
-    const orgRole = membership.role
     const permissions = await this.permissionResolver.resolve(orgId, orgRole)
 
     request.org = { orgId, orgRole, permissions }

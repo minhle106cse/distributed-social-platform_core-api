@@ -1,20 +1,12 @@
-import { Injectable } from '@nestjs/common'
-import { getTx } from '@distributed-social-platform/shared-kernel'
 import { Prisma } from '@/generated'
-import { PrismaService } from '@/infrastructure/database/prisma/prisma.service'
 import { CreditAccount } from '../../domain/entities/credit-account.aggregate'
 import type { CreditLedgerEvent } from '../../domain/entities/credit-account.aggregate'
 import type { ICreditEventRepository } from '../../domain/repositories/credit-event.repository'
 import { CreditConcurrencyError } from '../../domain/credit.errors'
 import { CreditEventMapper } from '../mappers/credit-event.mapper'
 
-@Injectable()
 export class PrismaCreditEventRepository implements ICreditEventRepository {
-  constructor(private readonly prisma: PrismaService) {}
-
-  private get client(): Prisma.TransactionClient {
-    return getTx<Prisma.TransactionClient>() ?? this.prisma.client
-  }
+  constructor(private readonly client: Prisma.TransactionClient) {}
 
   async loadOrOpen(orgId: string, userId: string): Promise<CreditAccount> {
     const aggregateId = CreditAccount.walletId(orgId, userId)
