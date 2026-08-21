@@ -1,4 +1,4 @@
-import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
+import type { CoreApiRepos } from '@/common/database/core-api-repos'
 import type { IKnowledgeItemRepository } from '@/modules/knowledge/domain/repositories/knowledge-item.repository'
 import { CreateKnowledgeHandler } from './create-knowledge.handler'
 import { CreateKnowledgeCommand } from './create-knowledge.command'
@@ -14,7 +14,7 @@ describe('CreateKnowledgeHandler', () => {
       findById: jest.fn(),
       updateWithOcc: jest.fn(),
       update: jest.fn(),
-    } as unknown as jest.Mocked<IKnowledgeItemRepository>
+    }
 
     handler = new CreateKnowledgeHandler()
     tx = { items: mockItemRepo } as unknown as CoreApiRepos

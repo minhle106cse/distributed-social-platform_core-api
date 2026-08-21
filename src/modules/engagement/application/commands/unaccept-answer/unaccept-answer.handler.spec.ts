@@ -1,4 +1,4 @@
-import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
+import type { CoreApiRepos } from '@/common/database/core-api-repos'
 import type { IKnowledgeItemRepository } from '@/modules/knowledge/domain/repositories/knowledge-item.repository'
 import { KnowledgeItem } from '@/modules/knowledge/domain/entities/knowledge-item.entity'
 import { KnowledgeItemNotFoundError } from '@/common/errors/knowledge.error'
@@ -21,7 +21,7 @@ describe('UnacceptAnswerHandler', () => {
       findById: jest.fn(),
       updateWithOcc: jest.fn(),
       update: jest.fn(),
-    } as unknown as jest.Mocked<IKnowledgeItemRepository>
+    }
 
     handler = new UnacceptAnswerHandler()
     tx = { items: mockItemRepo } as unknown as CoreApiRepos

@@ -9,7 +9,7 @@ describe('ListAllOrgsHandler', () => {
   beforeEach(() => {
     mockQueryRepo = {
       listAllOrgs: jest.fn(),
-    } as unknown as jest.Mocked<ISystemAdminQueryRepository>
+    }
 
     handler = new ListAllOrgsHandler(mockQueryRepo)
   })

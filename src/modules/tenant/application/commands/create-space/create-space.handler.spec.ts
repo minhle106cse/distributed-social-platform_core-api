@@ -1,4 +1,4 @@
-import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
+import type { CoreApiRepos } from '@/common/database/core-api-repos'
 import type { ISpaceRepository } from '@/modules/tenant/domain/repositories/space.repository'
 import { CreateSpaceHandler } from './create-space.handler'
 import { CreateSpaceCommand } from './create-space.command'
@@ -12,7 +12,7 @@ describe('CreateSpaceHandler', () => {
     mockSpaceRepo = {
       findById: jest.fn(),
       save: jest.fn(),
-    } as unknown as jest.Mocked<ISpaceRepository>
+    }
 
     handler = new CreateSpaceHandler()
     tx = { spaces: mockSpaceRepo } as unknown as CoreApiRepos

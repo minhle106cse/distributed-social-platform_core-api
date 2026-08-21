@@ -1,4 +1,4 @@
-import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
+import type { CoreApiRepos } from '@/common/database/core-api-repos'
 import type { IOrganizationRepository } from '@/modules/tenant/domain/repositories/organization.repository'
 import type { IMembershipRepository } from '@/modules/tenant/domain/repositories/membership.repository'
 import type { IOrgRolePermissionRepository } from '@/modules/tenant/domain/repositories/org-role-permission.repository'
@@ -19,19 +19,19 @@ describe('CreateOrgHandler', () => {
       findById: jest.fn(),
       findBySlug: jest.fn(),
       save: jest.fn(),
-    } as unknown as jest.Mocked<IOrganizationRepository>
+    }
 
     mockMembershipRepo = {
       findByOrgAndUser: jest.fn(),
       save: jest.fn(),
-    } as unknown as jest.Mocked<IMembershipRepository>
+    }
 
     mockRolePermissionRepo = {
       seedDefaults: jest.fn(),
       replaceForRole: jest.fn(),
       findByOrg: jest.fn(),
       findByOrgAndRole: jest.fn(),
-    } as unknown as jest.Mocked<IOrgRolePermissionRepository>
+    }
 
     handler = new CreateOrgHandler()
     tx = {

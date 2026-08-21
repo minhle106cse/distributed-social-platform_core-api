@@ -3,10 +3,7 @@ import { Cron } from '@nestjs/schedule'
 import { ConfigService } from '@nestjs/config'
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino'
 import { LogContext } from '@distributed-social-platform/shared-kernel'
-import {
-  OUTBOX_DISPATCH_REPOSITORY,
-  type IOutboxDispatchRepository,
-} from './outbox.repository'
+import { OUTBOX_DISPATCH_REPOSITORY, type IOutboxDispatchRepository } from './outbox.repository'
 import { ScheduledJobRegistry } from '@/infrastructure/scheduled-jobs/scheduled-job-registry.service'
 
 const JOB_NAME = 'OutboxCleanupService'

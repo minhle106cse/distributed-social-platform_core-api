@@ -1,4 +1,4 @@
-import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
+import type { CoreApiRepos } from '@/common/database/core-api-repos'
 import type { IOrgInviteRepository } from '@/modules/tenant/domain/repositories/org-invite.repository'
 import { OrgRole } from '@/modules/tenant/domain/org-rbac'
 import { CreateInviteHandler } from './create-invite.handler'
@@ -13,7 +13,7 @@ describe('CreateInviteHandler', () => {
     mockInviteRepo = {
       save: jest.fn(),
       findByToken: jest.fn(),
-    } as unknown as jest.Mocked<IOrgInviteRepository>
+    }
 
     handler = new CreateInviteHandler()
     tx = { invites: mockInviteRepo } as unknown as CoreApiRepos

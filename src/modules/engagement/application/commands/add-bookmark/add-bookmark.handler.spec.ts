@@ -1,4 +1,4 @@
-import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
+import type { CoreApiRepos } from '@/common/database/core-api-repos'
 import type { IKnowledgeItemRepository } from '@/modules/knowledge/domain/repositories/knowledge-item.repository'
 import type { IBookmarkRepository } from '@/modules/engagement/domain/repositories/bookmark.repository'
 import { KnowledgeItemNotFoundError } from '@/common/errors/knowledge.error'
@@ -21,12 +21,12 @@ describe('AddBookmarkHandler', () => {
       findById: jest.fn(),
       updateWithOcc: jest.fn(),
       update: jest.fn(),
-    } as unknown as jest.Mocked<IKnowledgeItemRepository>
+    }
 
     mockBookmarkRepo = {
       add: jest.fn(),
       remove: jest.fn(),
-    } as unknown as jest.Mocked<IBookmarkRepository>
+    }
 
     handler = new AddBookmarkHandler()
     tx = { items: mockItemRepo, bookmarks: mockBookmarkRepo } as unknown as CoreApiRepos

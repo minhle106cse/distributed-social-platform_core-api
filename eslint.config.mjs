@@ -188,4 +188,48 @@ export default tseslint.config(
     },
   },
 
+  // Narrow, deliberate exception to the common/ rule above — ONE file, and only for the
+  // repository-interface imports it is made of. `CoreApiRepos` is the service-wide
+  // Unit-of-Work SHAPE (ADR-0001): a bag of domain repository interfaces with no Prisma
+  // or framework type anywhere, i.e. exactly the "cross-cutting abstraction" common/ is
+  // for. It cannot be assembled without naming those interfaces, and it cannot live in
+  // any one module's domain/ because it spans six of them.
+  //
+  // It used to sit inside infrastructure/database/prisma/core-api-repos.factory.ts, which
+  // forced all 23 ITransactionalCommandHandler implementations to import a type from
+  // @/infrastructure — a real application-layer boundary violation that eslint had been
+  // reporting 23 times and nobody had read (2026-08-21 audit). Moving the declaration here
+  // removes all 23 and leaves the FACTORY (which does construct Prisma repos) in
+  // infrastructure where it belongs.
+  //
+  // Scoped to this exact path on purpose: widening the common/ rule itself would reopen
+  // the door this boundary exists to close.
+  {
+    files: ['src/common/database/core-api-repos.ts'],
+    rules: {
+      '@typescript-eslint/no-restricted-imports': 'off',
+    },
+  },
+
+  // Relax strict type rules inside test files (Jest mocks are inherently loosely typed).
+  // Mirrors the block auth-service has had all along — its absence here is why
+  // `unbound-method` alone accounted for 81 of the 261 pre-existing lint errors
+  // (2026-08-21 audit): `expect(mock.method).toHaveBeenCalled()` trips it by design,
+  // and that is the standard Jest assertion, not a defect worth 81 rewrites.
+  {
+    files: ['**/*.spec.ts'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+      '@typescript-eslint/unbound-method': 'off',
+      '@typescript-eslint/no-require-imports': 'off',
+      '@typescript-eslint/require-await': 'off',
+      'no-empty': 'off',
+    },
+  },
+
 )

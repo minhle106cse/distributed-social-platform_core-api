@@ -11,7 +11,7 @@ describe('ListKnowledgeItemsHandler', () => {
       findItemById: jest.fn(),
       findItems: jest.fn(),
       findRevisionsByItemId: jest.fn(),
-    } as unknown as jest.Mocked<IKnowledgeQueryRepository>
+    }
 
     handler = new ListKnowledgeItemsHandler(mockQueryRepo)
   })

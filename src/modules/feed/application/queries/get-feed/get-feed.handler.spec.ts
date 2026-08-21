@@ -9,7 +9,7 @@ describe('GetFeedHandler', () => {
   beforeEach(() => {
     mockQueryRepo = {
       getFeed: jest.fn(),
-    } as unknown as jest.Mocked<IFeedQueryRepository>
+    }
 
     handler = new GetFeedHandler(mockQueryRepo)
   })

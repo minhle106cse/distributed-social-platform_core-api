@@ -1,4 +1,4 @@
-import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
+import type { CoreApiRepos } from '@/common/database/core-api-repos'
 import type { IVoteRepository } from '@/modules/engagement/domain/repositories/vote.repository'
 import { RemoveVoteHandler } from './remove-vote.handler'
 import { RemoveVoteCommand } from './remove-vote.command'
@@ -13,7 +13,7 @@ describe('RemoveVoteHandler', () => {
       findByItemAndUser: jest.fn(),
       upsert: jest.fn(),
       removeByItemAndUser: jest.fn(),
-    } as unknown as jest.Mocked<IVoteRepository>
+    }
 
     handler = new RemoveVoteHandler()
     tx = { votes: mockVoteRepo } as unknown as CoreApiRepos

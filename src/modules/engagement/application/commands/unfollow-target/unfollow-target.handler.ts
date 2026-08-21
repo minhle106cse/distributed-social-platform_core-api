@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import type { ITransactionalCommandHandler } from '@distributed-social-platform/shared-kernel'
 import { FollowRemovedEvent } from '@distributed-social-platform/shared-kernel'
-import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
+import type { CoreApiRepos } from '@/common/database/core-api-repos'
 import { CommandHandler } from '@/infrastructure/cqrs/decorators/command-handler.decorator'
 import { Follow } from '@/modules/engagement/domain/entities/follow.entity'
 import { requireTenantId } from '@/common/tenant/tenant.context'

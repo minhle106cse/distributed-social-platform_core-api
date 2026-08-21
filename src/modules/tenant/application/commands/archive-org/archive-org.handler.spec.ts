@@ -1,4 +1,4 @@
-import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
+import type { CoreApiRepos } from '@/common/database/core-api-repos'
 import type { IOrganizationRepository } from '@/modules/tenant/domain/repositories/organization.repository'
 import { Organization } from '@/modules/tenant/domain/entities/organization.entity'
 import { OrgNotFoundError } from '@/common/errors/tenant.error'
@@ -15,7 +15,7 @@ describe('ArchiveOrgHandler', () => {
       findById: jest.fn(),
       findBySlug: jest.fn(),
       save: jest.fn(),
-    } as unknown as jest.Mocked<IOrganizationRepository>
+    }
 
     handler = new ArchiveOrgHandler()
     tx = { organizations: mockOrgRepo } as unknown as CoreApiRepos

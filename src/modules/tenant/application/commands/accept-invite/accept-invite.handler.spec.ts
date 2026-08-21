@@ -1,4 +1,4 @@
-import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
+import type { CoreApiRepos } from '@/common/database/core-api-repos'
 import type { IOrgInviteRepository } from '@/modules/tenant/domain/repositories/org-invite.repository'
 import type { IMembershipRepository } from '@/modules/tenant/domain/repositories/membership.repository'
 import { OrgInvite } from '@/modules/tenant/domain/entities/org-invite.entity'
@@ -40,12 +40,12 @@ describe('AcceptInviteHandler', () => {
     mockInviteRepo = {
       save: jest.fn(),
       findByToken: jest.fn(),
-    } as unknown as jest.Mocked<IOrgInviteRepository>
+    }
 
     mockMembershipRepo = {
       findByOrgAndUser: jest.fn(),
       save: jest.fn(),
-    } as unknown as jest.Mocked<IMembershipRepository>
+    }
 
     handler = new AcceptInviteHandler()
     tx = { invites: mockInviteRepo, memberships: mockMembershipRepo } as unknown as CoreApiRepos

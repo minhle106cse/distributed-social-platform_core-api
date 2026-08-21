@@ -1,4 +1,4 @@
-import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
+import type { CoreApiRepos } from '@/common/database/core-api-repos'
 import { RefundCreditsHandler } from './refund-credits.handler'
 import { RefundCreditsCommand } from './refund-credits.command'
 import type { ICreditEventRepository } from '@/modules/credit/domain/repositories/credit-event.repository'

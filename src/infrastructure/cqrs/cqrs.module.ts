@@ -17,7 +17,7 @@ import {
   type ISagaCompensationStore,
 } from '@distributed-social-platform/shared-kernel'
 import { transientError } from '../database/prisma/prisma-transient-error'
-import type { CoreApiRepos } from '../database/prisma/core-api-repos.factory'
+import type { CoreApiRepos } from '@/common/database/core-api-repos'
 
 /**
  * The command pipeline (logging → retry → transaction) is no longer assembled

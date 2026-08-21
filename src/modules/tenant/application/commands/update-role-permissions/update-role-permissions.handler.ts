@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino'
 import type { ITransactionalCommandHandler } from '@distributed-social-platform/shared-kernel'
-import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
+import type { CoreApiRepos } from '@/common/database/core-api-repos'
 import { CommandHandler } from '@/infrastructure/cqrs/decorators/command-handler.decorator'
 import { OrgRole } from '@/modules/tenant/domain/org-rbac'
 import { isValidOrgPermission, logAudit } from '@distributed-social-platform/shared-kernel'

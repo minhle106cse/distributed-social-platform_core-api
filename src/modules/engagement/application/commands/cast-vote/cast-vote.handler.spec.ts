@@ -1,4 +1,4 @@
-import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
+import type { CoreApiRepos } from '@/common/database/core-api-repos'
 import type { IKnowledgeItemRepository } from '@/modules/knowledge/domain/repositories/knowledge-item.repository'
 import type { IVoteRepository } from '@/modules/engagement/domain/repositories/vote.repository'
 import { Vote } from '@/modules/engagement/domain/entities/vote.entity'
@@ -22,13 +22,13 @@ describe('CastVoteHandler', () => {
       findById: jest.fn(),
       updateWithOcc: jest.fn(),
       update: jest.fn(),
-    } as unknown as jest.Mocked<IKnowledgeItemRepository>
+    }
 
     mockVoteRepo = {
       findByItemAndUser: jest.fn(),
       upsert: jest.fn(),
       removeByItemAndUser: jest.fn(),
-    } as unknown as jest.Mocked<IVoteRepository>
+    }
 
     handler = new CastVoteHandler()
     tx = { items: mockItemRepo, votes: mockVoteRepo } as unknown as CoreApiRepos

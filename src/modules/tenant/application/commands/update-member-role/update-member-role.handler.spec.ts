@@ -1,4 +1,4 @@
-import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
+import type { CoreApiRepos } from '@/common/database/core-api-repos'
 import type { PinoLogger } from 'nestjs-pino'
 import type { IMembershipRepository } from '@/modules/tenant/domain/repositories/membership.repository'
 import { Membership } from '@/modules/tenant/domain/entities/membership.entity'
@@ -21,7 +21,7 @@ describe('UpdateMemberRoleHandler', () => {
     mockMembershipRepo = {
       findByOrgAndUser: jest.fn(),
       save: jest.fn(),
-    } as unknown as jest.Mocked<IMembershipRepository>
+    }
 
     mockLogger = {
       info: jest.fn(),

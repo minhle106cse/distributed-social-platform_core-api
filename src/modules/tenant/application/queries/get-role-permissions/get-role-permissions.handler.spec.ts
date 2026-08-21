@@ -15,7 +15,7 @@ describe('GetRolePermissionsHandler', () => {
       replaceForRole: jest.fn(),
       findByOrg: jest.fn(),
       findByOrgAndRole: jest.fn(),
-    } as unknown as jest.Mocked<IOrgRolePermissionRepository>
+    }
 
     // Real instance (not mocked) — OrgPermissionResolver.resolve() is a pure,
     // deterministic short-circuit for OWNER, no reason to fake it here.

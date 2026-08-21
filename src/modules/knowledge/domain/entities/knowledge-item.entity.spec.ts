@@ -33,7 +33,11 @@ describe('KnowledgeItem Entity', () => {
       createdByUserId: 'user-1',
     })
 
-    item.applyEdit({ title: 'Onboarding Guide v2', body: 'Step 1 revised...', editedByUserId: 'user-2' })
+    item.applyEdit({
+      title: 'Onboarding Guide v2',
+      body: 'Step 1 revised...',
+      editedByUserId: 'user-2',
+    })
 
     expect(item.version).toBe(2)
     expect(item.title).toBe('Onboarding Guide v2')

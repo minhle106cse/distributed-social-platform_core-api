@@ -1,4 +1,4 @@
-import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
+import type { CoreApiRepos } from '@/common/database/core-api-repos'
 import type { PinoLogger } from 'nestjs-pino'
 import type { IOrgRolePermissionRepository } from '@/modules/tenant/domain/repositories/org-role-permission.repository'
 import { OrgRole } from '@/modules/tenant/domain/org-rbac'
@@ -22,7 +22,7 @@ describe('UpdateRolePermissionsHandler', () => {
       replaceForRole: jest.fn(),
       findByOrg: jest.fn(),
       findByOrgAndRole: jest.fn(),
-    } as unknown as jest.Mocked<IOrgRolePermissionRepository>
+    }
 
     mockLogger = {
       info: jest.fn(),

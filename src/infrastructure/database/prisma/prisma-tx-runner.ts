@@ -3,7 +3,7 @@ import { InjectPinoLogger, PinoLogger } from 'nestjs-pino'
 import { AbstractTxRunner } from '@distributed-social-platform/shared-kernel'
 import type { Prisma } from '@/generated'
 import { PrismaService } from './prisma.service'
-import type { CoreApiRepos } from './core-api-repos.factory'
+import type { CoreApiRepos } from '@/common/database/core-api-repos'
 import { CoreApiRepoFactory } from './core-api-repos.factory'
 
 const TRANSACTION_TIMEOUT_MS = 10_000

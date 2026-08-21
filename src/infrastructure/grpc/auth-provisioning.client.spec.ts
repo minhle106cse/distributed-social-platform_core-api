@@ -27,7 +27,11 @@ jest.mock('@distributed-social-platform/shared-kernel', () => ({
 import { AuthProvisioningClient } from './auth-provisioning.client'
 
 function grpcError(code: grpc.status): grpc.ServiceError & { code: grpc.status } {
-  return Object.assign(new Error('grpc error'), { code, details: '', metadata: new grpc.Metadata() })
+  return Object.assign(new Error('grpc error'), {
+    code,
+    details: '',
+    metadata: new grpc.Metadata(),
+  })
 }
 
 describe('AuthProvisioningClient', () => {
@@ -46,9 +50,9 @@ describe('AuthProvisioningClient', () => {
     } as unknown as jest.Mocked<ConfigService>
     // Bypass the breaker entirely — its own behavior is covered by
     // circuit-breaker.spec.ts, not this client's job to re-test.
-    caller = { call: jest.fn((fn: () => Promise<unknown>) => fn()) } as unknown as jest.Mocked<
-      AuthProvisioningGrpcCaller
-    >
+    caller = {
+      call: jest.fn((fn: () => Promise<unknown>) => fn()),
+    } as unknown as jest.Mocked<AuthProvisioningGrpcCaller>
 
     client = new AuthProvisioningClient(config, caller)
   })

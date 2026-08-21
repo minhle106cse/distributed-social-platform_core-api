@@ -1,4 +1,4 @@
-import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
+import type { CoreApiRepos } from '@/common/database/core-api-repos'
 import type { IKnowledgeItemRepository } from '@/modules/knowledge/domain/repositories/knowledge-item.repository'
 import type { IOutboxAppender } from '@/infrastructure/outbox/outbox.repository'
 import { KnowledgeItem } from '@/modules/knowledge/domain/entities/knowledge-item.entity'
@@ -25,11 +25,11 @@ describe('PublishKnowledgeHandler', () => {
       findById: jest.fn(),
       updateWithOcc: jest.fn(),
       update: jest.fn(),
-    } as unknown as jest.Mocked<IKnowledgeItemRepository>
+    }
 
     mockOutboxRepo = {
       append: jest.fn(),
-    } as unknown as jest.Mocked<IOutboxAppender>
+    }
 
     handler = new PublishKnowledgeHandler()
     tx = { items: mockItemRepo, outbox: mockOutboxRepo } as unknown as CoreApiRepos

@@ -1,4 +1,4 @@
-import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
+import type { CoreApiRepos } from '@/common/database/core-api-repos'
 import type { IFollowRepository } from '@/modules/engagement/domain/repositories/follow.repository'
 import type { IOutboxAppender } from '@/infrastructure/outbox/outbox.repository'
 import { Follow } from '@/modules/engagement/domain/entities/follow.entity'
@@ -16,11 +16,11 @@ describe('UnfollowTargetHandler', () => {
     mockFollowRepo = {
       add: jest.fn(),
       remove: jest.fn(),
-    } as unknown as jest.Mocked<IFollowRepository>
+    }
 
     mockOutboxRepo = {
       append: jest.fn(),
-    } as unknown as jest.Mocked<IOutboxAppender>
+    }
 
     handler = new UnfollowTargetHandler()
     tx = { follows: mockFollowRepo, outbox: mockOutboxRepo } as unknown as CoreApiRepos

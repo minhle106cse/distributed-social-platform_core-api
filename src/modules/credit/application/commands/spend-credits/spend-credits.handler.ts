@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import type { ITransactionalCommandHandler } from '@distributed-social-platform/shared-kernel'
-import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
+import type { CoreApiRepos } from '@/common/database/core-api-repos'
 import { CommandHandler } from '@/infrastructure/cqrs/decorators/command-handler.decorator'
 import { SpendCreditsCommand } from './spend-credits.command'
 

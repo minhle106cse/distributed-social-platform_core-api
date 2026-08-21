@@ -1,4 +1,4 @@
-import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
+import type { CoreApiRepos } from '@/common/database/core-api-repos'
 import type { IKnowledgeItemRepository } from '@/modules/knowledge/domain/repositories/knowledge-item.repository'
 import type { ISpaceRepository } from '@/modules/tenant/domain/repositories/space.repository'
 import type { IFollowRepository } from '@/modules/engagement/domain/repositories/follow.repository'
@@ -27,21 +27,21 @@ describe('FollowTargetHandler', () => {
       findById: jest.fn(),
       updateWithOcc: jest.fn(),
       update: jest.fn(),
-    } as unknown as jest.Mocked<IKnowledgeItemRepository>
+    }
 
     mockSpaceRepo = {
       findById: jest.fn(),
       save: jest.fn(),
-    } as unknown as jest.Mocked<ISpaceRepository>
+    }
 
     mockFollowRepo = {
       add: jest.fn(),
       remove: jest.fn(),
-    } as unknown as jest.Mocked<IFollowRepository>
+    }
 
     mockOutboxRepo = {
       append: jest.fn(),
-    } as unknown as jest.Mocked<IOutboxAppender>
+    }
 
     handler = new FollowTargetHandler()
     tx = {

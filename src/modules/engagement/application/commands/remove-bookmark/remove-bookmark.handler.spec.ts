@@ -1,4 +1,4 @@
-import type { CoreApiRepos } from '@/infrastructure/database/prisma/core-api-repos.factory'
+import type { CoreApiRepos } from '@/common/database/core-api-repos'
 import type { IBookmarkRepository } from '@/modules/engagement/domain/repositories/bookmark.repository'
 import { RemoveBookmarkHandler } from './remove-bookmark.handler'
 import { RemoveBookmarkCommand } from './remove-bookmark.command'
@@ -12,7 +12,7 @@ describe('RemoveBookmarkHandler', () => {
     mockBookmarkRepo = {
       add: jest.fn(),
       remove: jest.fn(),
-    } as unknown as jest.Mocked<IBookmarkRepository>
+    }
 
     handler = new RemoveBookmarkHandler()
     tx = { bookmarks: mockBookmarkRepo } as unknown as CoreApiRepos

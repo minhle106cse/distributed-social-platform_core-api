@@ -11,7 +11,7 @@ describe('ListBookmarksHandler', () => {
       getVoteSummary: jest.fn(),
       listBookmarks: jest.fn(),
       listFollows: jest.fn(),
-    } as unknown as jest.Mocked<IEngagementQueryRepository>
+    }
 
     handler = new ListBookmarksHandler(mockQueryRepo)
   })
