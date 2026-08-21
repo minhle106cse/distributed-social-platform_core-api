@@ -1,8 +1,8 @@
 import { Injectable, Inject } from '@nestjs/common'
 import type { IQueryHandler } from '@distributed-social-platform/shared-kernel'
 import { QueryHandler } from '@/infrastructure/cqrs/decorators/query-handler.decorator'
-import { MEMBERSHIP_QUERY_REPOSITORY } from '../membership.query-repository'
-import type { IMembershipQueryRepository } from '../membership.query-repository'
+import { MEMBERSHIP_QUERY_REPOSITORY } from '../../repositories/membership.query-repository'
+import type { IMembershipQueryRepository } from '../../repositories/membership.query-repository'
 import { ListMyOrgsQuery } from './list-my-orgs.query'
 import type { MyOrgDto } from '../membership.dto'
 

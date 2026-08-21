@@ -1,9 +1,9 @@
 import { Injectable, Inject } from '@nestjs/common'
 import type { IQueryHandler } from '@distributed-social-platform/shared-kernel'
 import { QueryHandler } from '@/infrastructure/cqrs/decorators/query-handler.decorator'
-import { MEMBERSHIP_QUERY_REPOSITORY } from '@/modules/tenant/application/queries/membership.query-repository'
-import type { IMembershipQueryRepository } from '@/modules/tenant/application/queries/membership.query-repository'
-import { OrgPermissionResolver } from '@/modules/tenant/domain/services/resolve-org-permissions'
+import { MEMBERSHIP_QUERY_REPOSITORY } from '@/modules/tenant/application/repositories/membership.query-repository'
+import type { IMembershipQueryRepository } from '@/modules/tenant/application/repositories/membership.query-repository'
+import { OrgPermissionResolver } from '@/modules/tenant/domain/services/org-permission-resolver'
 import { CheckMembershipQuery } from './check-membership.query'
 
 export interface CheckMembershipResult {

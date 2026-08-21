@@ -1,8 +1,8 @@
 import { Injectable, Inject } from '@nestjs/common'
 import type { IQueryHandler } from '@distributed-social-platform/shared-kernel'
 import { QueryHandler } from '@/infrastructure/cqrs/decorators/query-handler.decorator'
-import { ENGAGEMENT_QUERY_REPOSITORY } from '../engagement.query-repository'
-import type { IEngagementQueryRepository } from '../engagement.query-repository'
+import { ENGAGEMENT_QUERY_REPOSITORY } from '../../repositories/engagement.query-repository'
+import type { IEngagementQueryRepository } from '../../repositories/engagement.query-repository'
 import type { BookmarkDto } from '../engagement.dto'
 import { ListBookmarksQuery } from './list-bookmarks.query'
 

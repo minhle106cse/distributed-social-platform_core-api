@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { PrismaService } from '@/infrastructure/database/prisma/prisma.service'
-import { ISystemAdminQueryRepository } from '../../application/queries/system-admin.query-repository'
+import { ISystemAdminQueryRepository } from '../../application/repositories/system-admin.query-repository'
 import { OrgSummaryDto } from '../../application/queries/system-admin.dto'
 
 @Injectable()

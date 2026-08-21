@@ -1,6 +1,6 @@
 import type { IOrgRolePermissionRepository } from '@/modules/tenant/domain/repositories/org-role-permission.repository'
 import { OrgRole } from '@/modules/tenant/domain/org-rbac'
-import { OrgPermissionResolver } from '@/modules/tenant/domain/services/resolve-org-permissions'
+import { OrgPermissionResolver } from '@/modules/tenant/domain/services/org-permission-resolver'
 import { ALL_ORG_PERMISSIONS, OrgPermission } from '@distributed-social-platform/shared-kernel'
 import { GetRolePermissionsHandler } from './get-role-permissions.handler'
 import { GetRolePermissionsQuery } from './get-role-permissions.query'

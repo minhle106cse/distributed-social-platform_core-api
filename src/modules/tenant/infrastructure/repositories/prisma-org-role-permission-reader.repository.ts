@@ -8,7 +8,7 @@ import type {
 
 /** Read side on the plain client — no transaction, so callable from a guard. */
 @Injectable()
-export class PrismaOrgRolePermissionQueryRepository implements IOrgRolePermissionReader {
+export class PrismaOrgRolePermissionReaderRepository implements IOrgRolePermissionReader {
   constructor(private readonly prisma: PrismaService) {}
 
   async findByOrg(orgId: string): Promise<OrgRolePermissionEntry[]> {

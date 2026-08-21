@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { PrismaService } from '@/infrastructure/database/prisma/prisma.service'
-import type { IKnowledgeQueryRepository } from '../../application/queries/knowledge.query-repository'
+import type { IKnowledgeQueryRepository } from '../../application/repositories/knowledge.query-repository'
 import type {
   KnowledgeItemDto,
   KnowledgeListItemDto,

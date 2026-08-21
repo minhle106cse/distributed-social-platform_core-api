@@ -1,4 +1,4 @@
-import type { FeedItemDto } from './feed.dto'
+import type { FeedItemDto } from '../queries/feed.dto'
 
 export interface IFeedQueryRepository {
   getFeed(p: {

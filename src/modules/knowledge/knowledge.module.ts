@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common'
 import { TenantModule } from '@/modules/tenant/tenant.module'
-import { KNOWLEDGE_QUERY_REPOSITORY } from './application/queries/knowledge.query-repository'
+import { KNOWLEDGE_QUERY_REPOSITORY } from './application/repositories/knowledge.query-repository'
 import { CreateKnowledgeHandler } from './application/commands/create-knowledge/create-knowledge.handler'
 import { UpdateKnowledgeHandler } from './application/commands/update-knowledge/update-knowledge.handler'
 import { PublishKnowledgeHandler } from './application/commands/publish-knowledge/publish-knowledge.handler'

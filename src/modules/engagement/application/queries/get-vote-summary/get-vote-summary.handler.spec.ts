@@ -1,4 +1,4 @@
-import type { IEngagementQueryRepository } from '../engagement.query-repository'
+import type { IEngagementQueryRepository } from '../../repositories/engagement.query-repository'
 import { GetVoteSummaryHandler } from './get-vote-summary.handler'
 import { GetVoteSummaryQuery } from './get-vote-summary.query'
 

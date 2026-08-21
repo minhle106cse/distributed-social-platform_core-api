@@ -1,4 +1,4 @@
-import type { VoteSummaryDto, BookmarkDto, FollowDto } from './engagement.dto'
+import type { VoteSummaryDto, BookmarkDto, FollowDto } from '../queries/engagement.dto'
 
 export interface IEngagementQueryRepository {
   getVoteSummary(itemId: string, orgId: string, userId: string): Promise<VoteSummaryDto>

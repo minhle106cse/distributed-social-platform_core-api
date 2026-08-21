@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common'
 import { TenantModule } from '@/modules/tenant/tenant.module'
-import { WALLET_QUERY_REPOSITORY } from './application/queries/wallet.query-repository'
+import { WALLET_QUERY_REPOSITORY } from './application/repositories/wallet.query-repository'
 import { GrantCreditsHandler } from './application/commands/grant-credits/grant-credits.handler'
 import { SpendCreditsHandler } from './application/commands/spend-credits/spend-credits.handler'
 import { RefundCreditsHandler } from './application/commands/refund-credits/refund-credits.handler'

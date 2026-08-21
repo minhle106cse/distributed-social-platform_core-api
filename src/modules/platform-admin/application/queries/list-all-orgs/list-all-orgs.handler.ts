@@ -1,8 +1,8 @@
 import { Injectable, Inject } from '@nestjs/common'
 import type { IQueryHandler } from '@distributed-social-platform/shared-kernel'
 import { QueryHandler } from '@/infrastructure/cqrs/decorators/query-handler.decorator'
-import { SYSTEM_ADMIN_QUERY_REPOSITORY } from '../system-admin.query-repository'
-import type { ISystemAdminQueryRepository } from '../system-admin.query-repository'
+import { SYSTEM_ADMIN_QUERY_REPOSITORY } from '../../repositories/system-admin.query-repository'
+import type { ISystemAdminQueryRepository } from '../../repositories/system-admin.query-repository'
 import type { OrgSummaryDto } from '../system-admin.dto'
 import { ListAllOrgsQuery } from './list-all-orgs.query'
 

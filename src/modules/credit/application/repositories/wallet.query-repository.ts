@@ -1,4 +1,4 @@
-import type { WalletDto } from './wallet.dto'
+import type { WalletDto } from '../queries/wallet.dto'
 
 export interface IWalletQueryRepository {
   // Folds the credit_events stream into a balance + recent ledger view.

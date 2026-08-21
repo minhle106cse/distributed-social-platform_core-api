@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { PrismaService } from '@/infrastructure/database/prisma/prisma.service'
-import type { IFeedQueryRepository } from '../../application/queries/feed.query-repository'
+import type { IFeedQueryRepository } from '../../application/repositories/feed.query-repository'
 import type { FeedItemDto } from '../../application/queries/feed.dto'
 
 @Injectable()

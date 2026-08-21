@@ -1,4 +1,4 @@
-import type { IEngagementQueryRepository } from '../engagement.query-repository'
+import type { IEngagementQueryRepository } from '../../repositories/engagement.query-repository'
 import { ListBookmarksHandler } from './list-bookmarks.handler'
 import { ListBookmarksQuery } from './list-bookmarks.query'
 

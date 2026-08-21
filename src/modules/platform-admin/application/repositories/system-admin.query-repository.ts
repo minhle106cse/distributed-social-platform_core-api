@@ -1,4 +1,4 @@
-import { OrgSummaryDto } from './system-admin.dto'
+import { OrgSummaryDto } from '../queries/system-admin.dto'
 
 /**
  * Platform-wide reads — deliberately NOT tenant-filtered (this module exists

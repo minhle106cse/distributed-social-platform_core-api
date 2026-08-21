@@ -1,4 +1,4 @@
-import type { IFeedQueryRepository } from '../feed.query-repository'
+import type { IFeedQueryRepository } from '../../repositories/feed.query-repository'
 import { GetFeedHandler } from './get-feed.handler'
 import { GetFeedQuery } from './get-feed.query'
 

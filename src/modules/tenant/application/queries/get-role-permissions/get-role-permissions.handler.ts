@@ -4,7 +4,7 @@ import { QueryHandler } from '@/infrastructure/cqrs/decorators/query-handler.dec
 import { ORG_ROLE_PERMISSION_READER } from '@/modules/tenant/domain/repositories/org-role-permission.repository'
 import type { IOrgRolePermissionReader } from '@/modules/tenant/domain/repositories/org-role-permission.repository'
 import { OrgRole } from '@/modules/tenant/domain/org-rbac'
-import { OrgPermissionResolver } from '@/modules/tenant/domain/services/resolve-org-permissions'
+import { OrgPermissionResolver } from '@/modules/tenant/domain/services/org-permission-resolver'
 import { GetRolePermissionsQuery } from './get-role-permissions.query'
 
 export type RolePermissionsMap = Record<OrgRole, string[]>

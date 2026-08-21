@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { PrismaService } from '@/infrastructure/database/prisma/prisma.service'
 import { CreditAccount } from '../../domain/entities/credit-account.aggregate'
-import type { IWalletQueryRepository } from '../../application/queries/wallet.query-repository'
+import type { IWalletQueryRepository } from '../../application/repositories/wallet.query-repository'
 import type { WalletDto, WalletLedgerEntryDto } from '../../application/queries/wallet.dto'
 import { CreditEventMapper } from '../mappers/credit-event.mapper'
 

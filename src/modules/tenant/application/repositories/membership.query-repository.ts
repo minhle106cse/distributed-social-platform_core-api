@@ -1,5 +1,5 @@
 import type { OrgRole } from '../../domain/org-rbac'
-import { MemberDto, MyOrgDto } from './membership.dto'
+import { MemberDto, MyOrgDto } from '../queries/membership.dto'
 
 export interface IMembershipQueryRepository {
   findMembersByOrgId(orgId: string, limit: number, offset: number): Promise<MemberDto[]>

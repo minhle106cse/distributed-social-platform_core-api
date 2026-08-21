@@ -1,8 +1,8 @@
 import { Injectable, Inject } from '@nestjs/common'
 import type { IQueryHandler } from '@distributed-social-platform/shared-kernel'
 import { QueryHandler } from '@/infrastructure/cqrs/decorators/query-handler.decorator'
-import { FEED_QUERY_REPOSITORY } from '../feed.query-repository'
-import type { IFeedQueryRepository } from '../feed.query-repository'
+import { FEED_QUERY_REPOSITORY } from '../../repositories/feed.query-repository'
+import type { IFeedQueryRepository } from '../../repositories/feed.query-repository'
 import type { FeedItemDto } from '../feed.dto'
 import { GetFeedQuery } from './get-feed.query'
 

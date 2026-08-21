@@ -1,4 +1,4 @@
-import type { IMembershipQueryRepository } from '../membership.query-repository'
+import type { IMembershipQueryRepository } from '../../repositories/membership.query-repository'
 import { ListMyOrgsHandler } from './list-my-orgs.handler'
 import { ListMyOrgsQuery } from './list-my-orgs.query'
 

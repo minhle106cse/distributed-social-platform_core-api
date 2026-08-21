@@ -1,4 +1,4 @@
-import type { IEngagementQueryRepository } from '../engagement.query-repository'
+import type { IEngagementQueryRepository } from '../../repositories/engagement.query-repository'
 import { ListFollowsHandler } from './list-follows.handler'
 import { ListFollowsQuery } from './list-follows.query'
 

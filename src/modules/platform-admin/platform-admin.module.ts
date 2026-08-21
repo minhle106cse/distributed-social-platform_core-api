@@ -1,6 +1,6 @@
 import { Module, OnModuleInit } from '@nestjs/common'
 import { CommandBus } from '@distributed-social-platform/shared-kernel'
-import { SYSTEM_ADMIN_QUERY_REPOSITORY } from './application/queries/system-admin.query-repository'
+import { SYSTEM_ADMIN_QUERY_REPOSITORY } from './application/repositories/system-admin.query-repository'
 import { ListAllOrgsHandler } from './application/queries/list-all-orgs/list-all-orgs.handler'
 import { ProvisionOrgHandler } from './application/commands/provision-org/provision-org.handler'
 import { PrismaSystemAdminQueryRepository } from './infrastructure/repositories/prisma-system-admin.query-repository'

@@ -1,4 +1,4 @@
-import type { KnowledgeItemDto, KnowledgeListItemDto, RevisionDto } from './knowledge.dto'
+import type { KnowledgeItemDto, KnowledgeListItemDto, RevisionDto } from '../queries/knowledge.dto'
 import type { KnowledgeType, KnowledgeStatus } from '../../domain/entities/knowledge-item.entity'
 
 export interface IKnowledgeQueryRepository {

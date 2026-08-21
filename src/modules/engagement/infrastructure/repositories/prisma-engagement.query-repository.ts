@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { PrismaService } from '@/infrastructure/database/prisma/prisma.service'
-import type { IEngagementQueryRepository } from '../../application/queries/engagement.query-repository'
+import type { IEngagementQueryRepository } from '../../application/repositories/engagement.query-repository'
 import type {
   VoteSummaryDto,
   BookmarkDto,

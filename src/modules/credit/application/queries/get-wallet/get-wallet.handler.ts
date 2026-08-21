@@ -1,8 +1,8 @@
 import { Injectable, Inject } from '@nestjs/common'
 import type { IQueryHandler } from '@distributed-social-platform/shared-kernel'
 import { QueryHandler } from '@/infrastructure/cqrs/decorators/query-handler.decorator'
-import { WALLET_QUERY_REPOSITORY } from '../wallet.query-repository'
-import type { IWalletQueryRepository } from '../wallet.query-repository'
+import { WALLET_QUERY_REPOSITORY } from '../../repositories/wallet.query-repository'
+import type { IWalletQueryRepository } from '../../repositories/wallet.query-repository'
 import type { WalletDto } from '../wallet.dto'
 import { GetWalletQuery } from './get-wallet.query'
 

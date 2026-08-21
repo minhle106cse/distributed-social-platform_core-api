@@ -1,4 +1,4 @@
-import type { ISystemAdminQueryRepository } from '../system-admin.query-repository'
+import type { ISystemAdminQueryRepository } from '../../repositories/system-admin.query-repository'
 import { ListAllOrgsHandler } from './list-all-orgs.handler'
 import { ListAllOrgsQuery } from './list-all-orgs.query'
 

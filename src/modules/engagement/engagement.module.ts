@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common'
 import { TenantModule } from '@/modules/tenant/tenant.module'
 import { KnowledgeModule } from '@/modules/knowledge/knowledge.module'
-import { ENGAGEMENT_QUERY_REPOSITORY } from './application/queries/engagement.query-repository'
+import { ENGAGEMENT_QUERY_REPOSITORY } from './application/repositories/engagement.query-repository'
 import { CastVoteHandler } from './application/commands/cast-vote/cast-vote.handler'
 import { RemoveVoteHandler } from './application/commands/remove-vote/remove-vote.handler'
 import { AddBookmarkHandler } from './application/commands/add-bookmark/add-bookmark.handler'

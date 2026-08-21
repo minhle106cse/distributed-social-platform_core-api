@@ -1,4 +1,4 @@
-import type { IKnowledgeQueryRepository } from '../knowledge.query-repository'
+import type { IKnowledgeQueryRepository } from '../../repositories/knowledge.query-repository'
 import { ListKnowledgeItemsHandler } from './list-knowledge-items.handler'
 import { ListKnowledgeItemsQuery } from './list-knowledge-items.query'
 
