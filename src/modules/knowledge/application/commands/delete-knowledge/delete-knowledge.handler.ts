@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common'
 import type { ITransactionalCommandHandler } from '@distributed-social-platform/shared-kernel'
 import type { CoreApiRepos } from '@/common/database/core-api-repos'
 import { CommandHandler } from '@/infrastructure/cqrs/decorators/command-handler.decorator'
-import { KnowledgeItemNotFoundError } from '@/common/errors/knowledge.error'
+import { KnowledgeItemNotFoundError } from '@/modules/knowledge/domain/knowledge.error'
 import { DeleteKnowledgeCommand } from './delete-knowledge.command'
 
 @Injectable()

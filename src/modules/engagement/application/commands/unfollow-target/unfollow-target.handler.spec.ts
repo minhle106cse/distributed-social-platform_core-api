@@ -1,6 +1,6 @@
 import type { CoreApiRepos } from '@/common/database/core-api-repos'
 import type { IFollowRepository } from '@/modules/engagement/domain/repositories/follow.repository'
-import type { IOutboxAppender } from '@/infrastructure/outbox/outbox.repository'
+import type { IOutboxWriter } from '@distributed-social-platform/shared-kernel'
 import { Follow } from '@/modules/engagement/domain/entities/follow.entity'
 import { runWithTenantContext, setTenantId } from '@/common/tenant/tenant.context'
 import { UnfollowTargetHandler } from './unfollow-target.handler'
@@ -10,7 +10,7 @@ describe('UnfollowTargetHandler', () => {
   let handler: UnfollowTargetHandler
   let tx: CoreApiRepos
   let mockFollowRepo: jest.Mocked<IFollowRepository>
-  let mockOutboxRepo: jest.Mocked<IOutboxAppender>
+  let mockOutboxRepo: jest.Mocked<IOutboxWriter>
 
   beforeEach(() => {
     mockFollowRepo = {

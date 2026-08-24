@@ -1,4 +1,4 @@
-import { Module, OnModuleInit } from '@nestjs/common'
+import { Inject, Module, OnModuleInit } from '@nestjs/common'
 import { CommandBus } from '@distributed-social-platform/shared-kernel'
 import { SYSTEM_ADMIN_QUERY_REPOSITORY } from './application/repositories/system-admin.query-repository'
 import { ListAllOrgsHandler } from './application/queries/list-all-orgs/list-all-orgs.handler'
@@ -6,13 +6,16 @@ import { ProvisionOrgHandler } from './application/commands/provision-org/provis
 import { PrismaSystemAdminQueryRepository } from './infrastructure/repositories/prisma-system-admin.query-repository'
 import { PlatformAdminController } from './presentation/controllers/platform-admin.controller'
 import { SystemPermissionGuard } from '@/infrastructure/http/guards/system-permission.guard'
-import { GrpcModule } from '@/infrastructure/grpc/grpc.module'
-import { AuthProvisioningClient } from '@/infrastructure/grpc/auth-provisioning.client'
+import {
+  AUTH_PROVISIONING_SERVICE,
+  type IAuthProvisioningService,
+} from './domain/services/auth-provisioning.service'
 import { SagaCompensationRegistry } from '@/infrastructure/saga-compensation/saga-compensation.registry'
 import { ArchiveOrgCommand } from '@/modules/tenant/application/commands/archive-org/archive-org.command'
 
 @Module({
-  imports: [GrpcModule],
+  // AUTH_PROVISIONING_SERVICE comes from GrpcModule (@Global, imported once by
+  // AppModule) — see that module's doc for why it is not imported per-consumer.
   controllers: [PlatformAdminController],
   providers: [
     SystemPermissionGuard,
@@ -24,7 +27,8 @@ import { ArchiveOrgCommand } from '@/modules/tenant/application/commands/archive
 export class PlatformAdminModule implements OnModuleInit {
   constructor(
     private readonly registry: SagaCompensationRegistry,
-    private readonly authProvisioningClient: AuthProvisioningClient,
+    @Inject(AUTH_PROVISIONING_SERVICE)
+    private readonly authProvisioning: IAuthProvisioningService,
     private readonly commandBus: CommandBus,
   ) {}
 
@@ -38,7 +42,7 @@ export class PlatformAdminModule implements OnModuleInit {
    */
   onModuleInit(): void {
     this.registry.register('cancel-provisioned-user', async (payload) => {
-      await this.authProvisioningClient.cancelProvisionedUser(payload.userId as string)
+      await this.authProvisioning.cancelProvisionedUser(payload.userId as string)
     })
     this.registry.register('archive-org', async (payload) => {
       await this.commandBus.execute(new ArchiveOrgCommand(payload.orgId as string))

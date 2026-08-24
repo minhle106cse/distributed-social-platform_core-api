@@ -4,8 +4,8 @@ import type {
   CompensationAction,
 } from '@distributed-social-platform/shared-kernel'
 import type { PinoLogger } from 'nestjs-pino'
-import type { AuthProvisioningClient } from '@/infrastructure/grpc/auth-provisioning.client'
-import { OwnerEmailAlreadyExistsError } from '@/common/errors/platform-admin.error'
+import type { IAuthProvisioningService } from '@/modules/platform-admin/domain/services/auth-provisioning.service'
+import { OwnerEmailAlreadyExistsError } from '@/modules/platform-admin/domain/platform-admin.error'
 import { ProvisionOrgHandler } from './provision-org.handler'
 import { ProvisionOrgCommand } from './provision-org.command'
 
@@ -17,7 +17,7 @@ import { ProvisionOrgCommand } from './provision-org.command'
  */
 describe('ProvisionOrgHandler', () => {
   let handler: ProvisionOrgHandler
-  let mockAuthClient: jest.Mocked<AuthProvisioningClient>
+  let mockAuthClient: jest.Mocked<IAuthProvisioningService>
   let mockLogger: jest.Mocked<PinoLogger>
   let compensations: Array<() => Promise<void>>
   let actions: CompensationAction[]
@@ -29,7 +29,7 @@ describe('ProvisionOrgHandler', () => {
     mockAuthClient = {
       provisionUser: jest.fn(),
       cancelProvisionedUser: jest.fn(),
-    } as unknown as jest.Mocked<AuthProvisioningClient>
+    }
 
     mockLogger = {
       error: jest.fn(),

@@ -3,7 +3,7 @@ import type { PinoLogger } from 'nestjs-pino'
 import type { IMembershipRepository } from '@/modules/tenant/domain/repositories/membership.repository'
 import { Membership } from '@/modules/tenant/domain/entities/membership.entity'
 import { OrgRole } from '@/modules/tenant/domain/org-rbac'
-import { MembershipNotFoundError } from '@/common/errors/tenant.error'
+import { MembershipNotFoundError } from '@/modules/tenant/domain/tenant.error'
 import { UpdateMemberRoleHandler } from './update-member-role.handler'
 import { UpdateMemberRoleCommand } from './update-member-role.command'
 

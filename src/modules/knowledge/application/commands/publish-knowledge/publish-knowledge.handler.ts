@@ -6,7 +6,7 @@ import { CommandHandler } from '@/infrastructure/cqrs/decorators/command-handler
 import {
   KnowledgeItemNotFoundError,
   InvalidKnowledgeStateError,
-} from '@/common/errors/knowledge.error'
+} from '@/modules/knowledge/domain/knowledge.error'
 import { PublishKnowledgeCommand } from './publish-knowledge.command'
 
 @Injectable()

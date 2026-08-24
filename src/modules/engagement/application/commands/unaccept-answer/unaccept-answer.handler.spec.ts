@@ -1,8 +1,11 @@
 import type { CoreApiRepos } from '@/common/database/core-api-repos'
 import type { IKnowledgeItemRepository } from '@/modules/knowledge/domain/repositories/knowledge-item.repository'
 import { KnowledgeItem } from '@/modules/knowledge/domain/entities/knowledge-item.entity'
-import { KnowledgeItemNotFoundError } from '@/common/errors/knowledge.error'
-import { NotAQuestionError, AcceptAnswerForbiddenError } from '@/common/errors/engagement.error'
+import { KnowledgeItemNotFoundError } from '@/modules/knowledge/domain/knowledge.error'
+import {
+  NotAQuestionError,
+  AcceptAnswerForbiddenError,
+} from '@/modules/engagement/domain/engagement.error'
 import { UnacceptAnswerHandler } from './unaccept-answer.handler'
 import { UnacceptAnswerCommand } from './unaccept-answer.command'
 

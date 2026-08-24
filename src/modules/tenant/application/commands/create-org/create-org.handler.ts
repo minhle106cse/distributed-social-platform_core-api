@@ -4,7 +4,7 @@ import type { CoreApiRepos } from '@/common/database/core-api-repos'
 import { CommandHandler } from '@/infrastructure/cqrs/decorators/command-handler.decorator'
 import { Organization } from '@/modules/tenant/domain/entities/organization.entity'
 import { Membership } from '@/modules/tenant/domain/entities/membership.entity'
-import { OrgSlugAlreadyTakenError } from '@/common/errors/tenant.error'
+import { OrgSlugAlreadyTakenError } from '@/modules/tenant/domain/tenant.error'
 import { CreateOrgCommand } from './create-org.command'
 
 @Injectable()

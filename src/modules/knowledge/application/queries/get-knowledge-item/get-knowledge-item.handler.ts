@@ -4,7 +4,7 @@ import { QueryHandler } from '@/infrastructure/cqrs/decorators/query-handler.dec
 import { KNOWLEDGE_QUERY_REPOSITORY } from '../../repositories/knowledge.query-repository'
 import type { IKnowledgeQueryRepository } from '../../repositories/knowledge.query-repository'
 import type { KnowledgeItemDto } from '../knowledge.dto'
-import { KnowledgeItemNotFoundError } from '@/common/errors/knowledge.error'
+import { KnowledgeItemNotFoundError } from '@/modules/knowledge/domain/knowledge.error'
 import { GetKnowledgeItemQuery } from './get-knowledge-item.query'
 
 @Injectable()

@@ -5,7 +5,7 @@ import type { CoreApiRepos } from '@/common/database/core-api-repos'
 import { CommandHandler } from '@/infrastructure/cqrs/decorators/command-handler.decorator'
 import { Follow } from '@/modules/engagement/domain/entities/follow.entity'
 import { requireTenantId } from '@/common/tenant/tenant.context'
-import { FollowTargetNotFoundError } from '@/common/errors/engagement.error'
+import { FollowTargetNotFoundError } from '@/modules/engagement/domain/engagement.error'
 import { FollowTargetCommand } from './follow-target.command'
 
 @Injectable()

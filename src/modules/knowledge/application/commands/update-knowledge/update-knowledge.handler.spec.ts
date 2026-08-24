@@ -5,7 +5,7 @@ import { KnowledgeItem } from '@/modules/knowledge/domain/entities/knowledge-ite
 import {
   KnowledgeItemNotFoundError,
   KnowledgeVersionConflictError,
-} from '@/common/errors/knowledge.error'
+} from '@/modules/knowledge/domain/knowledge.error'
 import { UpdateKnowledgeHandler } from './update-knowledge.handler'
 import { UpdateKnowledgeCommand } from './update-knowledge.command'
 

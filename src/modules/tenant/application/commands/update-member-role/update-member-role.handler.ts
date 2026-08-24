@@ -4,7 +4,7 @@ import type { ITransactionalCommandHandler } from '@distributed-social-platform/
 import { logAudit } from '@distributed-social-platform/shared-kernel'
 import type { CoreApiRepos } from '@/common/database/core-api-repos'
 import { CommandHandler } from '@/infrastructure/cqrs/decorators/command-handler.decorator'
-import { MembershipNotFoundError } from '@/common/errors/tenant.error'
+import { MembershipNotFoundError } from '@/modules/tenant/domain/tenant.error'
 import { UpdateMemberRoleCommand } from './update-member-role.command'
 
 @Injectable()

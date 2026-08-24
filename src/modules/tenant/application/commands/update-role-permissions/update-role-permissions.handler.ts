@@ -8,7 +8,7 @@ import { isValidOrgPermission, logAudit } from '@distributed-social-platform/sha
 import {
   CannotModifyOwnerPermissionsError,
   InvalidOrgPermissionError,
-} from '@/common/errors/tenant.error'
+} from '@/modules/tenant/domain/tenant.error'
 import { UpdateRolePermissionsCommand } from './update-role-permissions.command'
 
 @Injectable()

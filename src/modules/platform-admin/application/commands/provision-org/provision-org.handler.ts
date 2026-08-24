@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common'
+import { Inject, Injectable } from '@nestjs/common'
 import {
   LogContext,
   logAudit,
@@ -7,8 +7,11 @@ import {
 } from '@distributed-social-platform/shared-kernel'
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino'
 import { CommandHandler } from '@/infrastructure/cqrs/decorators/command-handler.decorator'
-import { AuthProvisioningClient } from '@/infrastructure/grpc/auth-provisioning.client'
-import { OwnerEmailAlreadyExistsError } from '@/common/errors/platform-admin.error'
+import { OwnerEmailAlreadyExistsError } from '@/modules/platform-admin/domain/platform-admin.error'
+import {
+  AUTH_PROVISIONING_SERVICE,
+  type IAuthProvisioningService,
+} from '@/modules/platform-admin/domain/services/auth-provisioning.service'
 import { CreateOrgCommand } from '@/modules/tenant/application/commands/create-org/create-org.command'
 import { ArchiveOrgCommand } from '@/modules/tenant/application/commands/archive-org/archive-org.command'
 import { ProvisionOrgCommand } from './provision-org.command'
@@ -43,7 +46,8 @@ export class ProvisionOrgHandler implements ISagaCommandHandler<
   readonly dispatches = [CreateOrgCommand.name, ArchiveOrgCommand.name]
 
   constructor(
-    private readonly authProvisioningClient: AuthProvisioningClient,
+    @Inject(AUTH_PROVISIONING_SERVICE)
+    private readonly authProvisioning: IAuthProvisioningService,
     @InjectPinoLogger(ProvisionOrgHandler.name) private readonly logger: PinoLogger,
   ) {}
 
@@ -52,7 +56,7 @@ export class ProvisionOrgHandler implements ISagaCommandHandler<
     // idempotencyKey threaded through so a genuine client retry recovers the
     // SAME user via auth-service's own record instead of orphaning a second
     // one (review of ADR-0001, 2026-07-30).
-    const provisioned = await this.authProvisioningClient.provisionUser(
+    const provisioned = await this.authProvisioning.provisionUser(
       command.ownerEmail,
       command.idempotencyKey,
     )
@@ -71,7 +75,7 @@ export class ProvisionOrgHandler implements ISagaCommandHandler<
     // its first attempt (review of ADR-0001, 2026-07-30 — see
     // SagaCompensationRegistry for where 'cancel-provisioned-user' resolves to).
     ctx.onCompensate({ type: 'cancel-provisioned-user', payload: { userId } }, async () => {
-      await this.authProvisioningClient.cancelProvisionedUser(userId)
+      await this.authProvisioning.cancelProvisionedUser(userId)
     })
 
     try {

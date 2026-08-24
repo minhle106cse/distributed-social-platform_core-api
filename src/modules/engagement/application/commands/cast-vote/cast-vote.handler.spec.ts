@@ -2,7 +2,7 @@ import type { CoreApiRepos } from '@/common/database/core-api-repos'
 import type { IKnowledgeItemRepository } from '@/modules/knowledge/domain/repositories/knowledge-item.repository'
 import type { IVoteRepository } from '@/modules/engagement/domain/repositories/vote.repository'
 import { Vote } from '@/modules/engagement/domain/entities/vote.entity'
-import { KnowledgeItemNotFoundError } from '@/common/errors/knowledge.error'
+import { KnowledgeItemNotFoundError } from '@/modules/knowledge/domain/knowledge.error'
 import { CastVoteHandler } from './cast-vote.handler'
 import { CastVoteCommand } from './cast-vote.command'
 

@@ -6,7 +6,7 @@ import { Revision } from '@/modules/knowledge/domain/entities/revision.entity'
 import {
   KnowledgeItemNotFoundError,
   KnowledgeVersionConflictError,
-} from '@/common/errors/knowledge.error'
+} from '@/modules/knowledge/domain/knowledge.error'
 import { UpdateKnowledgeCommand } from './update-knowledge.command'
 
 @Injectable()

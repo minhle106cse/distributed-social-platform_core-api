@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common'
 import type { ITransactionalCommandHandler } from '@distributed-social-platform/shared-kernel'
 import type { CoreApiRepos } from '@/common/database/core-api-repos'
 import { CommandHandler } from '@/infrastructure/cqrs/decorators/command-handler.decorator'
-import { OrgNotFoundError } from '@/common/errors/tenant.error'
+import { OrgNotFoundError } from '@/modules/tenant/domain/tenant.error'
 import { ArchiveOrgCommand } from './archive-org.command'
 
 @Injectable()

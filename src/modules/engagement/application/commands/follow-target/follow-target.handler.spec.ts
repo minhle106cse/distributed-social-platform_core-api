@@ -2,10 +2,10 @@ import type { CoreApiRepos } from '@/common/database/core-api-repos'
 import type { IKnowledgeItemRepository } from '@/modules/knowledge/domain/repositories/knowledge-item.repository'
 import type { ISpaceRepository } from '@/modules/tenant/domain/repositories/space.repository'
 import type { IFollowRepository } from '@/modules/engagement/domain/repositories/follow.repository'
-import type { IOutboxAppender } from '@/infrastructure/outbox/outbox.repository'
+import type { IOutboxWriter } from '@distributed-social-platform/shared-kernel'
 import { Follow } from '@/modules/engagement/domain/entities/follow.entity'
 import { runWithTenantContext, setTenantId } from '@/common/tenant/tenant.context'
-import { FollowTargetNotFoundError } from '@/common/errors/engagement.error'
+import { FollowTargetNotFoundError } from '@/modules/engagement/domain/engagement.error'
 import { FollowTargetHandler } from './follow-target.handler'
 import { FollowTargetCommand } from './follow-target.command'
 
@@ -19,7 +19,7 @@ describe('FollowTargetHandler', () => {
   let mockItemRepo: jest.Mocked<IKnowledgeItemRepository>
   let mockSpaceRepo: jest.Mocked<ISpaceRepository>
   let mockFollowRepo: jest.Mocked<IFollowRepository>
-  let mockOutboxRepo: jest.Mocked<IOutboxAppender>
+  let mockOutboxRepo: jest.Mocked<IOutboxWriter>
 
   beforeEach(() => {
     mockItemRepo = {

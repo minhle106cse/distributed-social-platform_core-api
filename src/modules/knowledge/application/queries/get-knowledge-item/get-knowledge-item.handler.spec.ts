@@ -1,5 +1,5 @@
 import type { IKnowledgeQueryRepository } from '../../repositories/knowledge.query-repository'
-import { KnowledgeItemNotFoundError } from '@/common/errors/knowledge.error'
+import { KnowledgeItemNotFoundError } from '@/modules/knowledge/domain/knowledge.error'
 import { GetKnowledgeItemHandler } from './get-knowledge-item.handler'
 import { GetKnowledgeItemQuery } from './get-knowledge-item.query'
 

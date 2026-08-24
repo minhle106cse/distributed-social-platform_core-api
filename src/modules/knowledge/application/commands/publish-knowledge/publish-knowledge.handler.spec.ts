@@ -1,11 +1,11 @@
 import type { CoreApiRepos } from '@/common/database/core-api-repos'
 import type { IKnowledgeItemRepository } from '@/modules/knowledge/domain/repositories/knowledge-item.repository'
-import type { IOutboxAppender } from '@/infrastructure/outbox/outbox.repository'
+import type { IOutboxWriter } from '@distributed-social-platform/shared-kernel'
 import { KnowledgeItem } from '@/modules/knowledge/domain/entities/knowledge-item.entity'
 import {
   KnowledgeItemNotFoundError,
   InvalidKnowledgeStateError,
-} from '@/common/errors/knowledge.error'
+} from '@/modules/knowledge/domain/knowledge.error'
 import { PublishKnowledgeHandler } from './publish-knowledge.handler'
 import { PublishKnowledgeCommand } from './publish-knowledge.command'
 
@@ -17,7 +17,7 @@ describe('PublishKnowledgeHandler', () => {
   let handler: PublishKnowledgeHandler
   let tx: CoreApiRepos
   let mockItemRepo: jest.Mocked<IKnowledgeItemRepository>
-  let mockOutboxRepo: jest.Mocked<IOutboxAppender>
+  let mockOutboxRepo: jest.Mocked<IOutboxWriter>
 
   beforeEach(() => {
     mockItemRepo = {

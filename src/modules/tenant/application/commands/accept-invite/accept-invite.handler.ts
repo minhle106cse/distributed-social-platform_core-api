@@ -8,7 +8,7 @@ import {
   InviteExpiredError,
   InviteAlreadyUsedError,
   AlreadyMemberError,
-} from '@/common/errors/tenant.error'
+} from '@/modules/tenant/domain/tenant.error'
 import { AcceptInviteCommand } from './accept-invite.command'
 
 @Injectable()

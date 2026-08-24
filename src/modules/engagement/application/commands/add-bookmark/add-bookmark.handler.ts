@@ -3,7 +3,7 @@ import type { ITransactionalCommandHandler } from '@distributed-social-platform/
 import type { CoreApiRepos } from '@/common/database/core-api-repos'
 import { CommandHandler } from '@/infrastructure/cqrs/decorators/command-handler.decorator'
 import { Bookmark } from '@/modules/engagement/domain/entities/bookmark.entity'
-import { KnowledgeItemNotFoundError } from '@/common/errors/knowledge.error'
+import { KnowledgeItemNotFoundError } from '@/modules/knowledge/domain/knowledge.error'
 import { AddBookmarkCommand } from './add-bookmark.command'
 
 @Injectable()

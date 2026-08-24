@@ -6,7 +6,7 @@ import { OrgPermission } from '@distributed-social-platform/shared-kernel'
 import {
   CannotModifyOwnerPermissionsError,
   InvalidOrgPermissionError,
-} from '@/common/errors/tenant.error'
+} from '@/modules/tenant/domain/tenant.error'
 import { UpdateRolePermissionsHandler } from './update-role-permissions.handler'
 import { UpdateRolePermissionsCommand } from './update-role-permissions.command'
 

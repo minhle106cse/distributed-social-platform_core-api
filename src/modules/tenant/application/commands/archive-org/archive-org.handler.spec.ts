@@ -1,7 +1,7 @@
 import type { CoreApiRepos } from '@/common/database/core-api-repos'
 import type { IOrganizationRepository } from '@/modules/tenant/domain/repositories/organization.repository'
 import { Organization } from '@/modules/tenant/domain/entities/organization.entity'
-import { OrgNotFoundError } from '@/common/errors/tenant.error'
+import { OrgNotFoundError } from '@/modules/tenant/domain/tenant.error'
 import { ArchiveOrgHandler } from './archive-org.handler'
 import { ArchiveOrgCommand } from './archive-org.command'
 

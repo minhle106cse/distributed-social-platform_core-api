@@ -1,7 +1,7 @@
 import type { CoreApiRepos } from '@/common/database/core-api-repos'
 import type { IKnowledgeItemRepository } from '@/modules/knowledge/domain/repositories/knowledge-item.repository'
 import type { IBookmarkRepository } from '@/modules/engagement/domain/repositories/bookmark.repository'
-import { KnowledgeItemNotFoundError } from '@/common/errors/knowledge.error'
+import { KnowledgeItemNotFoundError } from '@/modules/knowledge/domain/knowledge.error'
 import { AddBookmarkHandler } from './add-bookmark.handler'
 import { AddBookmarkCommand } from './add-bookmark.command'
 
