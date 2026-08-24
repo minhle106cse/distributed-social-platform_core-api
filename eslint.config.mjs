@@ -121,11 +121,18 @@ export default tseslint.config(
                 '@/generated',
                 '@/generated/**',
                 'fastify',
-                '@/infrastructure/database/**',
-                '@/infrastructure/http/**',
+                // 2026-08-24: was the two-entry allowlist `@/infrastructure/database/**`
+                // + `@/infrastructure/http/**`, which left grpc/outbox/messaging/kafka
+                // wide open — that hole is how AskAiHandler and ProvisionOrgHandler came
+                // to inject the concrete RagQueryClient/AuthProvisioningClient with no
+                // port at all. Inverted to "everything in infrastructure/ is banned
+                // except cqrs" so a NEW infra folder is closed by default.
+                '@/infrastructure/**',
+                '!@/infrastructure/cqrs',
+                '!@/infrastructure/cqrs/**',
               ],
               message:
-                'Application không được phụ thuộc ORM/HTTP/DB. Dùng repository interface từ domain; infra hợp lệ duy nhất là @/infrastructure/cqrs.',
+                'Application không được phụ thuộc infrastructure. Dùng port (domain/repositories, domain/services, common/) — infra hợp lệ duy nhất là @/infrastructure/cqrs (decorators).',
             },
           ],
         },
@@ -189,11 +196,11 @@ export default tseslint.config(
   },
 
   // Narrow, deliberate exception to the common/ rule above — ONE file, and only for the
-  // repository-interface imports it is made of. `CoreApiRepos` is the service-wide
-  // Unit-of-Work SHAPE (ADR-0001): a bag of domain repository interfaces with no Prisma
-  // or framework type anywhere, i.e. exactly the "cross-cutting abstraction" common/ is
-  // for. It cannot be assembled without naming those interfaces, and it cannot live in
-  // any one module's domain/ because it spans six of them.
+  // `@/modules/*/domain/repositories/**` imports it is made of. `CoreApiRepos` is the
+  // service-wide Unit-of-Work SHAPE (ADR-0001): a bag of domain repository interfaces
+  // with no Prisma or framework type anywhere, i.e. exactly the "cross-cutting
+  // abstraction" common/ is for. It cannot be assembled without naming those interfaces,
+  // and it cannot live in any one module's domain/ because it spans six of them.
   //
   // It used to sit inside infrastructure/database/prisma/core-api-repos.factory.ts, which
   // forced all 23 ITransactionalCommandHandler implementations to import a type from
@@ -201,6 +208,11 @@ export default tseslint.config(
   // reporting 23 times and nobody had read (2026-08-21 audit). Moving the declaration here
   // removes all 23 and leaves the FACTORY (which does construct Prisma repos) in
   // infrastructure where it belongs.
+  //
+  // 2026-08-24: this exception was ALSO covering a `@/infrastructure/outbox/...` import
+  // (IOutboxAppender), which is not what it says it is for. The port moved to
+  // `common/outbox/outbox-appender.ts`, so the import is now a plain relative one and
+  // the exception is back to covering only what its wording claims.
   //
   // Scoped to this exact path on purpose: widening the common/ rule itself would reopen
   // the door this boundary exists to close.
