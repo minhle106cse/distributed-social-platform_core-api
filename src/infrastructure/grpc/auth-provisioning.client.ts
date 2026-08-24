@@ -8,22 +8,13 @@ import {
   attachTraceparent,
   getCurrentTraceparent,
 } from '@distributed-social-platform/shared-kernel'
-import { AuthProvisioningUnavailableError } from '@/common/errors/platform-admin.error'
+import { AuthProvisioningUnavailableError } from '@/modules/platform-admin/domain/platform-admin.error'
 import { AuthProvisioningGrpcCaller } from './auth-provisioning-grpc.caller'
-
-export interface ProvisionedOwner {
-  userId: string
-  temporaryPassword: string
-}
-
-/** Tagged, non-error outcome — the client stays in transport vocabulary and
- * leaves deciding what "email taken" MEANS to the caller (same layering
- * `CreateOrgHandler`/`AcceptInviteHandler` use for their own already-exists
- * checks: infra returns data, the application-layer handler throws the
- * ApplicationError). Untagged by `ProvisionOrgHandler`, not here. */
-export interface OwnerEmailAlreadyExists {
-  alreadyExists: true
-}
+import type {
+  IAuthProvisioningService,
+  OwnerEmailAlreadyExists,
+  ProvisionedOwner,
+} from '@/modules/platform-admin/domain/services/auth-provisioning.service'
 
 const DEADLINE_MS = 5000
 
@@ -54,9 +45,13 @@ const DEADLINE_MS = 5000
  * returned). Fixed: `provisionUser` now returns the tagged
  * `OwnerEmailAlreadyExists` union member instead of throwing it — deciding
  * what that means is `ProvisionOrgHandler`'s job now.
+ *
+ * 2026-08-24: the ADAPTER for `IAuthProvisioningService`
+ * (`modules/platform-admin/domain/services/`) — see RagQueryClient's doc for why
+ * the adapter stays under the service-wide `infrastructure/grpc/`.
  */
 @Injectable()
-export class AuthProvisioningClient implements OnModuleDestroy {
+export class AuthProvisioningClient implements IAuthProvisioningService, OnModuleDestroy {
   private readonly client: IGeneratedAuthProvisioningClient
   private readonly sharedSecret: string
 

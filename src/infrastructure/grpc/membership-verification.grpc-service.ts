@@ -5,6 +5,9 @@ import * as grpc from '@grpc/grpc-js'
 import {
   type MembershipVerificationServer,
   verifyInternalGrpcSecret,
+  readTraceparent,
+  startTraceContext,
+  runWithTraceContext,
   QueryBus,
   LogContext,
 } from '@distributed-social-platform/shared-kernel'
@@ -50,7 +53,13 @@ export class MembershipVerificationGrpcService implements MembershipVerification
   }
 
   checkMembership: MembershipVerificationServer['checkMembership'] = (call, callback) => {
-    void (async () => {
+    // Continue the caller's W3C trace instead of starting a fresh one — same as
+    // AuthProvisioningGrpcService. Added 2026-08-24: neither side of this hop
+    // carried traceparent (the two per-service clients didn't attach it, this
+    // server didn't read it), so every membership check silently broke the trace
+    // chain that the other two gRPC hops maintain.
+    const traceCtx = startTraceContext(readTraceparent(call))
+    void runWithTraceContext(traceCtx, async () => {
       if (!verifyInternalGrpcSecret(call, this.#internalGrpcSharedSecret)) {
         // Security-relevant rejection — previously silent (2026-07-25 gateway
         // audit found this). Unlike HTTP (every 401/403 logged at the boundary
@@ -81,6 +90,6 @@ export class MembershipVerificationGrpcService implements MembershipVerification
         this.#logger.error({ context: LogContext.GRPC, err }, 'CheckMembership gRPC call failed')
         callback({ code: grpc.status.INTERNAL, message: 'Failed to check membership' })
       }
-    })()
+    })
   }
 }

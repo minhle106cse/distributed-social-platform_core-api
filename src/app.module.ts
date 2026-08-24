@@ -19,6 +19,7 @@ import { HttpIdempotencyModule } from './infrastructure/http/idempotency/idempot
 import { createLogger } from '@distributed-social-platform/shared-kernel'
 
 import { CqrsModule } from './infrastructure/cqrs/cqrs.module'
+import { GrpcModule } from './infrastructure/grpc/grpc.module'
 import { KafkaModule } from './infrastructure/kafka/kafka.module'
 import { MessagingModule } from './infrastructure/messaging/messaging.module'
 import { OutboxModule } from './infrastructure/outbox/outbox.module'
@@ -39,6 +40,7 @@ import { CreditModule } from './modules/credit/credit.module'
     ScheduledJobsModule,
     SagaCompensationModule,
     HttpIdempotencyModule,
+    GrpcModule,
     KafkaModule,
     MessagingModule,
     OutboxModule,

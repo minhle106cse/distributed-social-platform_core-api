@@ -1,6 +1,6 @@
 import * as grpc from '@grpc/grpc-js'
 import type { ConfigService } from '@nestjs/config'
-import { AuthProvisioningUnavailableError } from '@/common/errors/platform-admin.error'
+import { AuthProvisioningUnavailableError } from '@/modules/platform-admin/domain/platform-admin.error'
 import type { AuthProvisioningGrpcCaller } from './auth-provisioning-grpc.caller'
 
 type ProvisionCallback = (
