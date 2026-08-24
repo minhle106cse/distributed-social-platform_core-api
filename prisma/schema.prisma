@@ -15,12 +15,12 @@ datasource db {
 // ─────────────────────────────────────────────
 
 model Organization {
-  id                String    @id @default(uuid(7))
-  name              String
-  slug              String
-  seatLimit         Int       @default(10)     @map("seat_limit")
-  createdAt         DateTime  @default(now())  @map("created_at")
-  deletedAt         DateTime?                  @map("deleted_at")
+  id        String    @id @default(uuid(7))
+  name      String
+  slug      String
+  seatLimit Int       @default(10) @map("seat_limit")
+  createdAt DateTime  @default(now()) @map("created_at")
+  deletedAt DateTime? @map("deleted_at")
 
   spaces          Space[]
   memberships     Membership[]
@@ -37,9 +37,9 @@ model Organization {
 model Membership {
   id       String   @id @default(uuid(7))
   orgId    String   @map("org_id")
-  userId   String   @map("user_id")   // loose ref to auth_db — no cross-db FK
+  userId   String   @map("user_id") // loose ref to auth_db — no cross-db FK
   role     OrgRole  @default(MEMBER)
-  joinedAt DateTime @default(now())   @map("joined_at")
+  joinedAt DateTime @default(now()) @map("joined_at")
 
   org Organization @relation(fields: [orgId], references: [id])
 
@@ -97,10 +97,10 @@ model OrgInvite {
   token     String    @unique
   orgId     String    @map("org_id")
   role      OrgRole   @default(MEMBER)
-  createdBy String    @map("created_by")  // loose ref to auth_db userId
+  createdBy String    @map("created_by") // loose ref to auth_db userId
   expiresAt DateTime  @map("expires_at")
   usedAt    DateTime? @map("used_at")
-  usedBy    String?   @map("used_by")     // userId who accepted
+  usedBy    String?   @map("used_by") // userId who accepted
 
   org Organization @relation(fields: [orgId], references: [id])
 
@@ -122,13 +122,13 @@ model KnowledgeItem {
   parentId         String?         @map("parent_id")
   acceptedAnswerId String?         @map("accepted_answer_id")
   status           KnowledgeStatus @default(DRAFT)
-  isVerified       Boolean         @default(false)   @map("is_verified")
-  version          Int             @default(1)        // OCC — check before update
+  isVerified       Boolean         @default(false) @map("is_verified")
+  version          Int             @default(1) // OCC — check before update
   contentHash      String?         @map("content_hash")
   createdByUserId  String          @map("created_by_user_id")
   updatedByUserId  String?         @map("updated_by_user_id")
-  createdAt        DateTime        @default(now())    @map("created_at")
-  updatedAt        DateTime        @updatedAt         @map("updated_at")
+  createdAt        DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
   deletedAt        DateTime?       @map("deleted_at")
 
   revisions Revision[]
@@ -158,7 +158,7 @@ model Revision {
   id             String   @id @default(uuid(7))
   itemId         String   @map("item_id")
   version        Int
-  bodySnapshot   String   @db.Text @map("body_snapshot")
+  bodySnapshot   String   @map("body_snapshot") @db.Text
   editedByUserId String   @map("edited_by_user_id")
   createdAt      DateTime @default(now()) @map("created_at")
 
@@ -186,7 +186,7 @@ model Vote {
   orgId     String   @map("org_id")
   itemId    String   @map("item_id")
   userId    String   @map("user_id")
-  value     Int      // +1 upvote / -1 downvote
+  value     Int // +1 upvote / -1 downvote
   createdAt DateTime @default(now()) @map("created_at")
 
   item KnowledgeItem @relation(fields: [itemId], references: [id])
@@ -235,17 +235,21 @@ enum FollowTargetType {
 ///            CreditSpent | CreditStaked | CreditReserved (−)
 model CreditEvent {
   id          String   @id @default(uuid(7))
-  aggregateId String   @map("aggregate_id")   // wallet id, per-user-per-org: "${orgId}:${userId}"
+  aggregateId String   @map("aggregate_id") // wallet id, per-user-per-org: "${orgId}:${userId}"
   eventType   String   @map("event_type")
-  version     Int                              // per-aggregate sequence for OCC
+  version     Int // per-aggregate sequence for OCC
   payload     Json
-  orgId       String   @map("org_id")          // denormalized from aggregateId for tenant-safe query/audit
-  userId      String   @map("user_id")         // denormalized from aggregateId; save() always sets it — NOT NULL so read-side can trust it, no fallback needed
+  orgId       String   @map("org_id") // denormalized from aggregateId for tenant-safe query/audit
+  userId      String   @map("user_id") // denormalized from aggregateId; save() always sets it — NOT NULL so read-side can trust it, no fallback needed
   createdAt   DateTime @default(now()) @map("created_at")
 
   @@unique([aggregateId, version])
   @@index([aggregateId])
   @@index([orgId])
+  /// Backs ExpiredReservationSweeperService, which scans for CreditReserved rows
+  /// older than the reservation TTL. Without it that scan is a full table scan of
+  /// an append-only ledger that only ever grows.
+  @@index([eventType, createdAt])
   @@map("credit_events")
 }
 
@@ -257,11 +261,11 @@ model CreditEvent {
 /// eventType: PointsEarned | PointsDeducted | BadgeAwarded | BadgeRevoked
 model ReputationEvent {
   id          String   @id @default(uuid(7))
-  aggregateId String   @map("aggregate_id")   // userId (reputation is per user per org)
+  aggregateId String   @map("aggregate_id") // userId (reputation is per user per org)
   eventType   String   @map("event_type")
-  version     Int                              // per-aggregate sequence for OCC
+  version     Int // per-aggregate sequence for OCC
   payload     Json
-  orgId       String   @map("org_id")         // reputation is scoped per org
+  orgId       String   @map("org_id") // reputation is scoped per org
   createdAt   DateTime @default(now()) @map("created_at")
 
   @@unique([aggregateId, version])
@@ -313,7 +317,7 @@ enum OutboxStatus {
 
 /// Idempotency key cache — prevents duplicate mutations from retried requests.
 model IdempotencyRecord {
-  key         String   @id               // X-Idempotency-Key header value
+  key         String   @id // X-Idempotency-Key header value
   // sha256(method + url + body) claimed under this key — detects the real
   // Stripe-style hazard of a client reusing the same key for a genuinely
   // different request (bug, or copy-pasted key), which must be rejected
@@ -360,4 +364,60 @@ enum SagaCompensationStatus {
   INFLIGHT
   DONE
   FAILED_DLQ
+}
+
+/// One row per AI-Query Saga run (Phase 5b, UC-C2). Not an event stream: unlike
+/// the credit ledger this is a plain record of "what was asked and what came
+/// back", and nothing recomputes state from it.
+///
+/// Written on BOTH outcomes — ANSWERED by CommitAiQueryCommand, FAILED by
+/// ReleaseCreditReservationCommand — so a user's history shows the questions that
+/// failed too, and the smoke test can assert the compensation actually ran.
+model AiQuery {
+  id         String  @id @default(uuid(7))
+  orgId      String  @map("org_id")
+  userId     String  @map("user_id")
+  question   String
+  /// Null when status = FAILED (no answer was produced).
+  answer     String?
+  /// Citations: [{ knowledgeItemId, title }] — snapshot, not a live join.
+  sources    Json    @default("[]")
+  /// Credits actually charged. 0 on FAILED — the hold was released, never charged.
+  creditCost Int     @map("credit_cost")
+  /// ANSWERED | FAILED
+  status     String
+
+  /// The saga's reservation id. UNIQUE: one saga run = one reservation = one row,
+  /// which is also what makes the FAILED write idempotent under reaper retries
+  /// (upsert on this key rather than a blind insert).
+  reservationId String   @unique @map("reservation_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@index([orgId, userId, createdAt])
+  @@map("ai_queries")
+}
+
+/// Token bucket for AI queries, one row per (org, user) — Phase 5b step 6.
+/// Credit spend is already a quota; this exists only to stop a BURST (a
+/// credit-rich user firing 200 queries in 10s still melts the Claude/Ollama
+/// bill even while paying for every one of them).
+///
+/// Postgres, not Redis: Redis is in docker-compose but has zero lines of code
+/// behind it, so adopting it here means a new client + config + health check +
+/// shutdown path. One row per (org,user) with low contention refills and
+/// consumes atomically in a single `UPDATE ... RETURNING`. Redis is the upgrade
+/// path once this is measured hot, not the default.
+///
+/// PK EXCEPTION (database_standard.md §2 mandates a uuid PK): this is not an
+/// entity, it is a counter keyed by exactly (orgId, userId) — a surrogate uuid
+/// would need a unique index on that pair anyway and buys nothing.
+model AiQuotaBucket {
+  orgId        String   @map("org_id")
+  userId       String   @map("user_id")
+  /// Fractional: refill is rate × elapsed, which is rarely a whole token.
+  tokens       Float
+  lastRefillAt DateTime @map("last_refill_at")
+
+  @@id([orgId, userId])
+  @@map("ai_quota_buckets")
 }

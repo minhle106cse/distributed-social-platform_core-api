@@ -28,7 +28,14 @@ export const envConfig = registerAs('env', () => {
     sagaCompensationClaimTimeoutMs: env.SAGA_COMPENSATION_CLAIM_TIMEOUT_MS,
     sagaCompensationPurgeRetentionDays: env.SAGA_COMPENSATION_PURGE_RETENTION_DAYS,
     authGrpcUrl: env.AUTH_GRPC_URL,
+    searchGrpcUrl: env.SEARCH_GRPC_URL,
     internalGrpcSharedSecret: env.INTERNAL_GRPC_SHARED_SECRET,
     coreGrpcPort: env.CORE_GRPC_PORT,
+    aiQueryCreditCost: env.AI_QUERY_CREDIT_COST,
+    aiQueryTopK: env.AI_QUERY_TOP_K,
+    aiQuotaCap: env.AI_QUOTA_CAP,
+    aiQuotaRefillPerMin: env.AI_QUOTA_REFILL_PER_MIN,
+    aiReservationTtlMs: env.AI_RESERVATION_TTL_MS,
+    aiReservationSweepIntervalMs: env.AI_RESERVATION_SWEEP_INTERVAL_MS,
   }
 })

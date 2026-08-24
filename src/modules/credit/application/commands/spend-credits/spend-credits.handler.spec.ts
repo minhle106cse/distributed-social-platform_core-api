@@ -6,7 +6,7 @@ import { CreditAccount } from '@/modules/credit/domain/entities/credit-account.a
 import {
   InsufficientCreditsError,
   CreditConcurrencyError,
-} from '@/modules/credit/domain/credit.errors'
+} from '@/modules/credit/domain/credit.error'
 
 describe('SpendCreditsHandler', () => {
   let handler: SpendCreditsHandler

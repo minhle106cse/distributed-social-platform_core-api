@@ -2,7 +2,7 @@ import { Prisma } from '@/generated'
 import { CreditAccount } from '../../domain/entities/credit-account.aggregate'
 import type { CreditLedgerEvent } from '../../domain/entities/credit-account.aggregate'
 import type { ICreditEventRepository } from '../../domain/repositories/credit-event.repository'
-import { CreditConcurrencyError } from '../../domain/credit.errors'
+import { CreditConcurrencyError } from '../../domain/credit.error'
 import { CreditEventMapper } from '../mappers/credit-event.mapper'
 
 export class PrismaCreditEventRepository implements ICreditEventRepository {

@@ -1,7 +1,7 @@
 import type { CoreApiRepos } from '@/common/database/core-api-repos'
 import type { IKnowledgeItemRepository } from '@/modules/knowledge/domain/repositories/knowledge-item.repository'
 import { KnowledgeItem } from '@/modules/knowledge/domain/entities/knowledge-item.entity'
-import { KnowledgeItemNotFoundError } from '@/common/errors/knowledge.error'
+import { KnowledgeItemNotFoundError } from '@/modules/knowledge/domain/knowledge.error'
 import { VerifyKnowledgeHandler } from './verify-knowledge.handler'
 import { VerifyKnowledgeCommand } from './verify-knowledge.command'
 
@@ -50,5 +50,23 @@ describe('VerifyKnowledgeHandler', () => {
     expect(item.isVerified).toBe(true)
     expect(item.updatedByUserId).toBe('verifier-1')
     expect(mockItemRepo.update).toHaveBeenCalledWith(item)
+  })
+
+  it('should NOT write again when the item is already verified (giữ attribution của người verify đầu)', async () => {
+    const item = KnowledgeItem.create({
+      orgId: 'org-1',
+      spaceId: 'space-1',
+      type: 'DOCUMENT',
+      title: 'T',
+      body: 'B',
+      createdByUserId: 'user-1',
+    })
+    item.verify('verifier-1')
+    mockItemRepo.findById.mockResolvedValueOnce(item)
+
+    await handler.execute(new VerifyKnowledgeCommand('item-1', 'verifier-2'), tx)
+
+    expect(mockItemRepo.update).not.toHaveBeenCalled()
+    expect(item.updatedByUserId).toBe('verifier-1')
   })
 })

@@ -107,10 +107,23 @@ export class KnowledgeItem {
     this._status = 'PUBLISHED'
   }
 
-  verify(verifierUserId: string): void {
+  /**
+   * Idempotent transition — same shape (and same reason) as
+   * `Notification.markAsRead()`: a repeat verify (retry, double-click, a second
+   * moderator opening a stale page) must not silently re-stamp
+   * `updatedByUserId`/`updatedAt` with the later actor. The attribution belongs
+   * to whoever actually flipped the flag, and only that call did.
+   *
+   * Returns whether this call changed state, so the handler can skip the write
+   * entirely when it didn't. There is no un-verify, so the transition is
+   * one-way and the guard can never wrongly block a legitimate re-verify.
+   */
+  verify(verifierUserId: string): boolean {
+    if (this._isVerified) return false
     this._isVerified = true
     this._updatedByUserId = verifierUserId
     this._updatedAt = new Date()
+    return true
   }
 
   softDelete(): void {

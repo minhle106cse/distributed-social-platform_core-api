@@ -49,12 +49,14 @@ export class OrgGuard implements CanActivate {
     setTenantId(orgId)
 
     // Nếu route khai báo @RequireOrgPermission, kiểm tra theo action (không theo role name)
-    const requiredPermission = this.reflector.get<OrgPermissionValue>(
+    const requiredPermissions = this.reflector.get<OrgPermissionValue[]>(
       ORG_PERMISSION_KEY,
       context.getHandler(),
     )
-    if (requiredPermission && !permissions.includes(requiredPermission)) {
-      throw new ForbiddenException(`Missing permission: ${requiredPermission}`)
+    // AND, không phải OR — route khai báo nhiều permission nghĩa là cần đủ cả.
+    const missing = requiredPermissions?.filter((p) => !permissions.includes(p)) ?? []
+    if (missing.length > 0) {
+      throw new ForbiddenException(`Missing permission: ${missing.join(', ')}`)
     }
 
     return true

@@ -69,9 +69,27 @@ describe('KnowledgeItem Entity', () => {
       createdByUserId: 'user-1',
     })
 
-    item.verify('verifier-1')
+    expect(item.verify('verifier-1')).toBe(true)
 
     expect(item.isVerified).toBe(true)
+    expect(item.updatedByUserId).toBe('verifier-1')
+  })
+
+  it('verify lần 2 phải là no-op — trả false và GIỮ NGUYÊN người verify đầu tiên', () => {
+    const item = KnowledgeItem.create({
+      orgId: 'org-1',
+      spaceId: 'space-1',
+      type: 'DOCUMENT',
+      title: 'Onboarding Guide',
+      body: 'Step 1...',
+      createdByUserId: 'user-1',
+    })
+
+    item.verify('verifier-1')
+
+    expect(item.verify('verifier-2')).toBe(false)
+    expect(item.isVerified).toBe(true)
+    // Người thực sự verify là verifier-1; lần gọi thứ 2 không được cướp attribution.
     expect(item.updatedByUserId).toBe('verifier-1')
   })
 

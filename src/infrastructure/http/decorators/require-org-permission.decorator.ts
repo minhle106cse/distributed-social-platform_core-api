@@ -8,5 +8,10 @@ export const ORG_PERMISSION_KEY = 'requiredOrgPermission'
  * OrgGuard resolve permission của role (từ DB, OWNER implicit-all) rồi kiểm tra.
  * Đổi "ai được làm gì" = sửa dữ liệu org_role_permissions, không đụng code route.
  */
-export const RequireOrgPermission = (permission: OrgPermissionValue) =>
-  SetMetadata(ORG_PERMISSION_KEY, permission)
+/**
+ * Nhiều permission = AND (phải có ĐỦ), không phải OR. Ca thật đầu tiên là
+ * POST /ai/ask (Phase 5b): nó vừa đọc knowledge vừa tiêu credit, nên một role
+ * chỉ được đọc mà không được tiêu tiền phải bị chặn ở đây.
+ */
+export const RequireOrgPermission = (...permissions: OrgPermissionValue[]) =>
+  SetMetadata(ORG_PERMISSION_KEY, permissions)
