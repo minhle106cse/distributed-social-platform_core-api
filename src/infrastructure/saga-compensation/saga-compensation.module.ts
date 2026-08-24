@@ -1,6 +1,5 @@
 import { Global, Module } from '@nestjs/common'
 import { SAGA_COMPENSATION_STORE } from '@distributed-social-platform/shared-kernel'
-import { SAGA_COMPENSATION_DISPATCH_REPOSITORY } from './saga-compensation.repository'
 import { PrismaSagaCompensationRepository } from './prisma-saga-compensation.repository'
 import { SagaCompensationRegistry } from './saga-compensation.registry'
 import { SagaCompensationReaperService } from './saga-compensation-reaper.service'
@@ -16,11 +15,9 @@ import { SagaCompensationCleanupService } from './saga-compensation-cleanup.serv
 @Module({
   providers: [
     PrismaSagaCompensationRepository,
+    // Only the shared-kernel port gets a token — the reaper/cleanup services inject
+    // the class itself, since both ends of that call are infrastructure (§6.1).
     { provide: SAGA_COMPENSATION_STORE, useExisting: PrismaSagaCompensationRepository },
-    {
-      provide: SAGA_COMPENSATION_DISPATCH_REPOSITORY,
-      useExisting: PrismaSagaCompensationRepository,
-    },
     SagaCompensationRegistry,
     SagaCompensationReaperService,
     SagaCompensationCleanupService,

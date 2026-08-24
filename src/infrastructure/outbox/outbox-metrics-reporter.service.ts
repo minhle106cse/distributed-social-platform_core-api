@@ -1,8 +1,8 @@
-import { Inject, Injectable } from '@nestjs/common'
+import { Injectable } from '@nestjs/common'
 import { Interval } from '@nestjs/schedule'
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino'
 import { LogContext } from '@distributed-social-platform/shared-kernel'
-import { OUTBOX_DISPATCH_REPOSITORY, type IOutboxDispatchRepository } from './outbox.repository'
+import { PrismaOutboxRepository } from './prisma-outbox.repository'
 import { outboxBacklogGauge } from '@/infrastructure/observability/outbox.metrics'
 import { ScheduledJobRegistry } from '@/infrastructure/scheduled-jobs/scheduled-job-registry.service'
 
@@ -22,7 +22,7 @@ const JOB_NAME = 'OutboxMetricsReporter'
 @Injectable()
 export class OutboxMetricsReporter {
   constructor(
-    @Inject(OUTBOX_DISPATCH_REPOSITORY) private readonly outboxRepo: IOutboxDispatchRepository,
+    private readonly outboxRepo: PrismaOutboxRepository,
     @InjectPinoLogger(OutboxMetricsReporter.name) private readonly logger: PinoLogger,
     private readonly jobRegistry: ScheduledJobRegistry,
   ) {

@@ -48,9 +48,12 @@ function hashRequest(method: string, url: string, body: unknown): string {
  * this table are this class and IdempotencyCleanupService, both themselves
  * infrastructure. A port would separate interface from implementation within
  * the SAME layer with no Application-layer consumer on the other side — that's
- * not a Hexagonal boundary, just indirection. Compare IOutboxRepository
- * (domain/repositories/outbox.repository.ts), which real Application-layer
- * command handlers depend on — that one is a real port.
+ * not a Hexagonal boundary, just indirection. Compare IOutboxWriter
+ * (common/outbox/outbox-writer.ts), which real Application-layer command
+ * handlers depend on — that one is a real port. The 2026-08-24 audit applied
+ * this same reasoning in the other direction and deleted
+ * IOutboxDispatchRepository/ISagaCompensationDispatchRepository, which were the
+ * shape this class was deliberately NOT given (resilience_patterns.md §6.1).
  */
 @Injectable()
 export class IdempotencyInterceptor implements NestInterceptor {

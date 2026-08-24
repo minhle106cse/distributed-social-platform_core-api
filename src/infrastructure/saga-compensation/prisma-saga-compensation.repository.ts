@@ -5,10 +5,15 @@ import type {
 } from '@distributed-social-platform/shared-kernel'
 import { Prisma } from '@/generated'
 import { PrismaService } from '@/infrastructure/database/prisma/prisma.service'
-import type {
-  ClaimedSagaCompensation,
-  ISagaCompensationDispatchRepository,
-} from './saga-compensation.repository'
+
+export interface ClaimedSagaCompensation {
+  id: string
+  sagaCommand: string
+  actionType: string
+  payload: unknown
+  attempts: number
+  createdAt: Date
+}
 
 /**
  * Both halves of the saga compensation store on the plain client — unlike
@@ -18,11 +23,18 @@ import type {
  * same "must run OUTSIDE any application transaction" requirement Outbox's
  * dispatch side already has. One class, one file — the split that matters for
  * Outbox (append-in-tx vs dispatch-outside-tx) doesn't apply here.
+ *
+ * It implements exactly ONE interface, and only because that one is a real port:
+ * `ISagaCompensationStore` is declared in shared-kernel and consumed by `CommandBus`
+ * — a genuinely different package on the other side. The reaper/cleanup half used to
+ * have a second interface (`ISagaCompensationDispatchRepository` + a DI token) whose
+ * only two consumers, `SagaCompensationReaperService` and
+ * `SagaCompensationCleanupService`, sit right next to it in `infrastructure/` — both
+ * ends infra, no boundary crossed, so it was removed 2026-08-24 and they now inject
+ * this class directly (resilience_patterns.md §6.1).
  */
 @Injectable()
-export class PrismaSagaCompensationRepository
-  implements ISagaCompensationStore, ISagaCompensationDispatchRepository
-{
+export class PrismaSagaCompensationRepository implements ISagaCompensationStore {
   constructor(private readonly prisma: PrismaService) {}
 
   async recordFailed(

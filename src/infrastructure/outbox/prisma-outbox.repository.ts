@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { Prisma } from '@/generated'
+import type { ClaimedOutboxEvent, IOutboxStore } from '@distributed-social-platform/shared-kernel'
 import { PrismaService } from '@/infrastructure/database/prisma/prisma.service'
-import type { ClaimedOutboxEvent, IOutboxDispatchRepository } from './outbox.repository'
 
 /**
  * Publisher side of the outbox — an ordinary singleton on the plain client.
@@ -11,10 +11,26 @@ import type { ClaimedOutboxEvent, IOutboxDispatchRepository } from './outbox.rep
  * would stretch those locks across the network. Previously that was guaranteed
  * only by a comment ("never called via getTx()"); now this class has no way to see
  * an ambient transaction at all, and the append path lives in a separate
- * `PrismaOutboxAppender` that is only reachable through a TxScope.
+ * `PrismaOutboxWriter` that is only reachable through a TxScope.
+ *
+ * It implements `IOutboxStore` (shared-kernel) for exactly the three methods
+ * `OutboxPublisher` drives — and NOT for the other three. The story behind that
+ * split, on one day (2026-08-24):
+ *   1. `IOutboxDispatchRepository` + a DI token were DELETED: all four consumers
+ *      (PollingPublisher, Reaper, Cleanup, MetricsReporter) were infrastructure,
+ *      so the interface crossed no boundary — the same mistake
+ *      `IIdempotencyRepository` was reverted for (resilience_patterns.md §6.1).
+ *   2. A port came BACK for part of it, as `IOutboxStore`, the moment the publish
+ *      loop moved into shared-kernel: its consumer now lives in another package,
+ *      so a real boundary exists. The rule ("where are the consumers") never
+ *      changed; the consumers moved.
+ * `reapStaleInflight`/`countByStatus`/`purgeProcessed` stay OFF the port: their
+ * callers (Reaper, MetricsReporter, Cleanup) are still infrastructure right here,
+ * and each is a one-line delegation. Contrast `IOutboxWriter`, whose consumers are
+ * Application-layer command handlers.
  */
 @Injectable()
-export class PrismaOutboxRepository implements IOutboxDispatchRepository {
+export class PrismaOutboxRepository implements IOutboxStore {
   constructor(private readonly prisma: PrismaService) {}
 
   async claimPendingBatch(limit: number): Promise<ClaimedOutboxEvent[]> {

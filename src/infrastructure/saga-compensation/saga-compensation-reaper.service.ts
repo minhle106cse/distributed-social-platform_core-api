@@ -1,12 +1,9 @@
-import { Inject, Injectable } from '@nestjs/common'
+import { Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { Interval } from '@nestjs/schedule'
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino'
 import { LogContext } from '@distributed-social-platform/shared-kernel'
-import {
-  SAGA_COMPENSATION_DISPATCH_REPOSITORY,
-  type ISagaCompensationDispatchRepository,
-} from './saga-compensation.repository'
+import { PrismaSagaCompensationRepository } from './prisma-saga-compensation.repository'
 import { SagaCompensationRegistry } from './saga-compensation.registry'
 import { ScheduledJobRegistry } from '@/infrastructure/scheduled-jobs/scheduled-job-registry.service'
 
@@ -31,8 +28,7 @@ export class SagaCompensationReaperService {
   private readonly claimTimeoutMs: number
 
   constructor(
-    @Inject(SAGA_COMPENSATION_DISPATCH_REPOSITORY)
-    private readonly repo: ISagaCompensationDispatchRepository,
+    private readonly repo: PrismaSagaCompensationRepository,
     private readonly registry: SagaCompensationRegistry,
     @InjectPinoLogger(SagaCompensationReaperService.name) private readonly logger: PinoLogger,
     private readonly jobRegistry: ScheduledJobRegistry,

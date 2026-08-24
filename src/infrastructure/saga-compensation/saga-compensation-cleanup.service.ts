@@ -1,12 +1,9 @@
-import { Inject, Injectable } from '@nestjs/common'
+import { Injectable } from '@nestjs/common'
 import { Cron } from '@nestjs/schedule'
 import { ConfigService } from '@nestjs/config'
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino'
 import { LogContext } from '@distributed-social-platform/shared-kernel'
-import {
-  SAGA_COMPENSATION_DISPATCH_REPOSITORY,
-  type ISagaCompensationDispatchRepository,
-} from './saga-compensation.repository'
+import { PrismaSagaCompensationRepository } from './prisma-saga-compensation.repository'
 import { ScheduledJobRegistry } from '@/infrastructure/scheduled-jobs/scheduled-job-registry.service'
 
 const JOB_NAME = 'SagaCompensationCleanupService'
@@ -24,8 +21,7 @@ export class SagaCompensationCleanupService {
   private readonly retentionDays: number
 
   constructor(
-    @Inject(SAGA_COMPENSATION_DISPATCH_REPOSITORY)
-    private readonly repo: ISagaCompensationDispatchRepository,
+    private readonly repo: PrismaSagaCompensationRepository,
     @InjectPinoLogger(SagaCompensationCleanupService.name) private readonly logger: PinoLogger,
     private readonly jobRegistry: ScheduledJobRegistry,
     config: ConfigService,

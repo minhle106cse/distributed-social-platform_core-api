@@ -1,9 +1,9 @@
-import { Inject, Injectable } from '@nestjs/common'
+import { Injectable } from '@nestjs/common'
 import { Cron } from '@nestjs/schedule'
 import { ConfigService } from '@nestjs/config'
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino'
 import { LogContext } from '@distributed-social-platform/shared-kernel'
-import { OUTBOX_DISPATCH_REPOSITORY, type IOutboxDispatchRepository } from './outbox.repository'
+import { PrismaOutboxRepository } from './prisma-outbox.repository'
 import { ScheduledJobRegistry } from '@/infrastructure/scheduled-jobs/scheduled-job-registry.service'
 
 const JOB_NAME = 'OutboxCleanupService'
@@ -22,7 +22,7 @@ export class OutboxCleanupService {
   private readonly retentionDays: number
 
   constructor(
-    @Inject(OUTBOX_DISPATCH_REPOSITORY) private readonly outboxRepo: IOutboxDispatchRepository,
+    private readonly outboxRepo: PrismaOutboxRepository,
     @InjectPinoLogger(OutboxCleanupService.name) private readonly logger: PinoLogger,
     private readonly jobRegistry: ScheduledJobRegistry,
     config: ConfigService,

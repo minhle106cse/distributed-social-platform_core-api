@@ -1,9 +1,9 @@
-import { Inject, Injectable } from '@nestjs/common'
+import { Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { Interval } from '@nestjs/schedule'
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino'
 import { LogContext } from '@distributed-social-platform/shared-kernel'
-import { OUTBOX_DISPATCH_REPOSITORY, type IOutboxDispatchRepository } from './outbox.repository'
+import { PrismaOutboxRepository } from './prisma-outbox.repository'
 import { ScheduledJobRegistry } from '@/infrastructure/scheduled-jobs/scheduled-job-registry.service'
 
 const JOB_NAME = 'OutboxReaperService'
@@ -16,8 +16,8 @@ const JOB_NAME = 'OutboxReaperService'
  * crash, redelivery is deduped by the idempotent consumer. Separate service
  * from PollingPublisherService — different failure mode, different cadence.
  *
- * Driving adapter only — the reap threshold/query lives behind
- * IOutboxDispatchRepository (see polling-publisher.service.ts for the same rationale).
+ * Driving adapter only — the reap threshold/query lives in PrismaOutboxRepository
+ * (see polling-publisher.service.ts for why that is injected as a concrete class).
  */
 @Injectable()
 export class OutboxReaperService {
@@ -25,7 +25,7 @@ export class OutboxReaperService {
   private readonly claimTimeoutMs: number
 
   constructor(
-    @Inject(OUTBOX_DISPATCH_REPOSITORY) private readonly outboxRepo: IOutboxDispatchRepository,
+    private readonly outboxRepo: PrismaOutboxRepository,
     @InjectPinoLogger(OutboxReaperService.name) private readonly logger: PinoLogger,
     private readonly jobRegistry: ScheduledJobRegistry,
     config: ConfigService,

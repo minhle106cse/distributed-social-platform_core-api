@@ -5,39 +5,47 @@ import { InjectPinoLogger, PinoLogger } from 'nestjs-pino'
 import {
   LogContext,
   MESSAGE_PUBLISHER,
-  type CloudEvent,
+  OutboxPublisher,
   type IMessagePublisher,
 } from '@distributed-social-platform/shared-kernel'
-import { OUTBOX_DISPATCH_REPOSITORY, type IOutboxDispatchRepository } from './outbox.repository'
+import { PrismaOutboxRepository } from './prisma-outbox.repository'
 import { outboxDeadLetterCounter } from '@/infrastructure/observability/outbox.metrics'
 import { ScheduledJobRegistry } from '@/infrastructure/scheduled-jobs/scheduled-job-registry.service'
 
 const JOB_NAME = 'PollingPublisherService'
 
 /**
- * Polling Publisher (microservices.io) — the half of the Transactional Outbox
- * that moves rows from PENDING to Kafka/queue. Stale-INFLIGHT recovery after a
- * publisher crash is a separate concern, handled by OutboxReaperService.
+ * Nest scheduler shell around shared-kernel's `OutboxPublisher`.
  *
- * Driving adapter only — the claim/publish/mark algorithm lives behind
- * IOutboxDispatchRepository (Hexagonal: swapping the scheduler trigger or the ORM
- * touches only 1 side of this class, never both).
+ * The claim/publish/mark loop, the CloudEvent mapping and the DLQ decision moved
+ * to shared-kernel on 2026-08-24: the outbox is a capability, identical wherever
+ * it is adopted, and the second service to need it should wire ~20 lines rather
+ * than copy ~90. What is legitimately per-service stays here — the tick
+ * (`@Interval`), the re-entrancy guard, the job registry, the prom-client counter,
+ * and the config. Stale-INFLIGHT recovery is a different concern on a different
+ * cadence: OutboxReaperService.
  */
 @Injectable()
 export class PollingPublisherService {
   private running = false
-  private readonly maxAttempts: number
-  private readonly pollBatchSize: number
+  private readonly engine: OutboxPublisher
 
   constructor(
-    @Inject(OUTBOX_DISPATCH_REPOSITORY) private readonly outboxRepo: IOutboxDispatchRepository,
-    @Inject(MESSAGE_PUBLISHER) private readonly publisher: IMessagePublisher,
+    outboxRepo: PrismaOutboxRepository,
+    @Inject(MESSAGE_PUBLISHER) publisher: IMessagePublisher,
     @InjectPinoLogger(PollingPublisherService.name) private readonly logger: PinoLogger,
     private readonly jobRegistry: ScheduledJobRegistry,
     config: ConfigService,
   ) {
-    this.maxAttempts = config.getOrThrow<number>('env.outboxMaxAttempts')
-    this.pollBatchSize = config.getOrThrow<number>('env.outboxPollBatchSize')
+    this.engine = new OutboxPublisher({
+      store: outboxRepo,
+      publisher,
+      logger: this.logger,
+      sourcePrefix: '/cortex/core-api',
+      maxAttempts: config.getOrThrow<number>('env.outboxMaxAttempts'),
+      batchSize: config.getOrThrow<number>('env.outboxPollBatchSize'),
+      onDeadLetter: (eventType) => outboxDeadLetterCounter.inc({ eventType }),
+    })
     this.jobRegistry.register({
       name: JOB_NAME,
       schedule: '@Interval(2000)',
@@ -52,57 +60,14 @@ export class PollingPublisherService {
     this.running = true
 
     try {
-      const events = await this.outboxRepo.claimPendingBatch(this.pollBatchSize)
-      if (events.length === 0) {
-        this.jobRegistry.recordSuccess(JOB_NAME)
-        return
-      }
-
-      for (const event of events) {
-        try {
-          // Map the internal outbox row → public CloudEvents 1.0 wire contract.
-          const cloudEvent: CloudEvent = {
-            specversion: '1.0',
-            id: event.id,
-            source: `/cortex/core-api/${event.aggregateType}`,
-            type: event.eventType,
-            time: event.createdAt.toISOString(),
-            subject: event.aggregateId,
-            datacontenttype: 'application/json',
-            data: event.payload,
-            orgid: event.orgId,
-            partitionkey: event.aggregateId,
-            traceparent: event.traceparent ?? undefined,
-          }
-
-          await this.publisher.publish(cloudEvent)
-          await this.outboxRepo.markProcessed(event.id)
-        } catch (err) {
-          await this.outboxRepo.markFailed(event.id, event.attempts, String(err), this.maxAttempts)
-
-          // markFailed decides PENDING (retry) vs FAILED_DLQ (terminal) using
-          // this exact same comparison internally (prisma-outbox.repository.ts)
-          // — recomputed here, not returned by markFailed, so the two stay in
-          // sync without widening the repository port for a caller-only concern.
-          const isNowDead = event.attempts + 1 >= this.maxAttempts
-          if (isNowDead) {
-            outboxDeadLetterCounter.inc({ eventType: event.eventType })
-            this.logger.warn(
-              { context: LogContext.OUTBOX, eventId: event.id, attempts: event.attempts + 1, err },
-              'Outbox event exhausted retry budget — permanently FAILED_DLQ, needs manual triage',
-            )
-          } else {
-            this.logger.warn(
-              { context: LogContext.OUTBOX, eventId: event.id, attempts: event.attempts + 1, err },
-              'Failed to publish outbox event — will retry',
-            )
-          }
-        }
-      }
+      await this.engine.pollOnce()
       this.jobRegistry.recordSuccess(JOB_NAME)
     } catch (err) {
-      // Only claimPendingBatch itself can reach here — per-event failures are
-      // already caught above and never escape the for-loop.
+      // Only claimPendingBatch can reach here — the engine marks and swallows
+      // per-event failures so one bad row never stalls the batch. Swallowed (not
+      // rethrown) on purpose: one failing tick must not kill the process, and
+      // without this catch the job would die quietly, which is the exact bug
+      // fixed on 2026-07-31.
       this.jobRegistry.recordFailure(JOB_NAME)
       this.logger.error(
         { context: LogContext.OUTBOX, err },

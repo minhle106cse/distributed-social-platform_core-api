@@ -1,12 +1,12 @@
 import { Prisma } from '@/generated'
 import { getCurrentTraceparent } from '@distributed-social-platform/shared-kernel'
-import type { IOutboxAppender, OutboxAppendInput } from './outbox.repository'
+import type { IOutboxWriter, OutboxAppendInput } from '@distributed-social-platform/shared-kernel'
 
 /**
  * Write side of the outbox. Built per-transaction by each module's TxScope factory,
  * so an append always commits together with the state change that produced it.
  */
-export class PrismaOutboxAppender implements IOutboxAppender {
+export class PrismaOutboxWriter implements IOutboxWriter {
   constructor(private readonly client: Prisma.TransactionClient) {}
 
   async append(input: OutboxAppendInput): Promise<void> {
