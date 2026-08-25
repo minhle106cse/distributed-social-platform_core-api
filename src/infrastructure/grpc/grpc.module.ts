@@ -4,6 +4,8 @@ import { AuthProvisioningGrpcCaller } from './auth-provisioning-grpc.caller'
 import { MembershipVerificationGrpcService } from './membership-verification.grpc-service'
 import { RagQueryClient } from './rag-query.client'
 import { RagQueryGrpcCaller } from './rag-query-grpc.caller'
+import { SystemRbacGrpcCaller } from './system-rbac-grpc.caller'
+import { SystemPermissionsClient } from './system-permissions.client'
 import { GrpcServerBootstrap } from '@/bootstrap/grpc'
 import { AUTH_PROVISIONING_SERVICE } from '@/modules/platform-admin/domain/services/auth-provisioning.service'
 import { RAG_QUERY_SERVICE } from '@/modules/credit/domain/services/rag-query.service'
@@ -36,12 +38,23 @@ import { RAG_QUERY_SERVICE } from '@/modules/credit/domain/services/rag-query.se
     RagQueryClient,
     MembershipVerificationGrpcService,
     GrpcServerBootstrap,
+    // System-permission resolution for SystemPermissionGuard. Exported as the
+    // concrete class (not behind a port token like the two below) because its
+    // consumer is an HTTP guard — infrastructure talking to infrastructure —
+    // not an application handler, so §6.1's port rule does not apply.
+    SystemRbacGrpcCaller,
+    SystemPermissionsClient,
     // Both clients are exported ONLY behind their module's port token: the
     // Application layer must never see the concrete class (§6.1). `useExisting`,
     // not `useClass`, so the breaker state stays on one shared instance.
     { provide: AUTH_PROVISIONING_SERVICE, useExisting: AuthProvisioningClient },
     { provide: RAG_QUERY_SERVICE, useExisting: RagQueryClient },
   ],
-  exports: [AUTH_PROVISIONING_SERVICE, RAG_QUERY_SERVICE, GrpcServerBootstrap],
+  exports: [
+    AUTH_PROVISIONING_SERVICE,
+    RAG_QUERY_SERVICE,
+    GrpcServerBootstrap,
+    SystemPermissionsClient,
+  ],
 })
 export class GrpcModule {}

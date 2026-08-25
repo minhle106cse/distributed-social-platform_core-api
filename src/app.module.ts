@@ -11,6 +11,7 @@ import { OrgAwareThrottlerGuard } from './infrastructure/http/guards/org-aware-t
 import { ScheduleModule } from '@nestjs/schedule'
 import { LoggerModule } from 'nestjs-pino'
 import { ConfigModule } from './config/config.module'
+import { CacheModule } from '@/infrastructure/cache/cache.module'
 import { PrismaModule } from './infrastructure/database/prisma/prisma.module'
 import { PrismaTxRunnerModule } from './infrastructure/database/prisma/prisma-tx-runner.module'
 import { ScheduledJobsModule } from './infrastructure/scheduled-jobs/scheduled-jobs.module'
@@ -34,6 +35,7 @@ import { CreditModule } from './modules/credit/credit.module'
   controllers: [HealthController],
   imports: [
     ConfigModule,
+    CacheModule,
     CqrsModule,
     PrismaModule,
     PrismaTxRunnerModule,

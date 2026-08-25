@@ -16,6 +16,7 @@ export const envConfig = registerAs('env', () => {
     nodeEnv: env.NODE_ENV,
     port: Number(process.env.PORT ?? env.CORE_API_PORT),
     corsAllowedOrigins: env.CORS_ALLOWED_ORIGINS,
+    redisUrl: env.REDIS_URL,
     jwtPublicKey: Buffer.from(env.JWT_PUBLIC_KEY, 'base64').toString('utf-8'),
     kafkaBrokers: env.KAFKA_BROKERS.split(','),
     kafkaClientId: env.CORE_KAFKA_CLIENT_ID,

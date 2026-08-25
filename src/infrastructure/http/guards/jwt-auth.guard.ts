@@ -1,17 +1,21 @@
 import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { FastifyRequest } from 'fastify'
-import * as jwt from 'jsonwebtoken'
+import { verifyAccessToken } from '@distributed-social-platform/shared-kernel'
+import type { AccessTokenClaims } from '@distributed-social-platform/shared-kernel'
 
 // Payload từ auth-service — system-level identity only.
 // orgId và orgRole KHÔNG có trong JWT; chúng được set bởi OrgGuard qua X-Org-Id header.
-export interface JwtPayload {
-  sub: string
-  email: string
-  roles: string[] // system-level roles (e.g. 'superadmin')
-  permissions: string[] // system-level permissions (e.g. 'create:org')
-}
+// Alias giữ nguyên tên cũ: rất nhiều file import { JwtPayload } từ guard này.
+export type JwtPayload = AccessTokenClaims
 
+/**
+ * Nest shell around shared-kernel's `verifyAccessToken` — the actual signature
+ * check, RS256 pinning and claim normalisation live there, shared with
+ * search-service and notification-service whose guards were byte-identical to
+ * this one (2026-08-25 audit). What stays here is what must stay per-service:
+ * reading config and translating a failure into this service's HTTP semantics.
+ */
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   constructor(private readonly configService: ConfigService) {}
@@ -26,7 +30,7 @@ export class JwtAuthGuard implements CanActivate {
     if (!publicKey) throw new UnauthorizedException('JWT public key not configured')
 
     try {
-      const payload = jwt.verify(token, publicKey, { algorithms: ['RS256'] }) as JwtPayload
+      const payload = verifyAccessToken(token, publicKey)
       ;(request as FastifyRequest & { user: JwtPayload }).user = payload
       return true
     } catch {

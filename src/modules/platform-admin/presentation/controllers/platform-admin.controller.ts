@@ -32,8 +32,13 @@ import type { ProvisionOrgDto } from '../schemas/provision-org.schema'
  * roles/permissions managed in auth-service) from Org RBAC (fixed per-org
  * role/permission enum, managed in tenant/).
  */
+// SystemPermissionGuard sits at CLASS level (2026-08-25) so a new route cannot
+// be added unguarded by forgetting @UseGuards — it now only has to declare
+// WHICH permission it needs. The guard is fail-closed, so a route that forgets
+// @RequireSystemPermission returns 403 instead of silently admitting every
+// authenticated user.
 @Controller()
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, SystemPermissionGuard)
 export class PlatformAdminController {
   constructor(
     private readonly queryBus: QueryBus,
@@ -51,7 +56,6 @@ export class PlatformAdminController {
   // client request should never risk a second provision+compensate round-trip.
   @Post('admin/orgs')
   @HttpCode(201)
-  @UseGuards(SystemPermissionGuard)
   @RequireSystemPermission(SystemPermission.ORG_CREATE)
   @UseInterceptors(IdempotencyInterceptor)
   @Throttle({ default: { ttl: 60_000, limit: 10 } })
@@ -77,7 +81,6 @@ export class PlatformAdminController {
   // OrgGuard (DB membership) — this endpoint lists every org, so there is no
   // single org to be a member of.
   @Get('admin/orgs')
-  @UseGuards(SystemPermissionGuard)
   @RequireSystemPermission(SystemPermission.ORG_READ)
   async listAllOrgs(
     @Query('limit') limit?: string,

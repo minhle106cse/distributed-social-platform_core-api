@@ -5,6 +5,10 @@ export const envValidationSchema = z.object({
   CORE_API_PORT: z.coerce.number().default(4002),
   CORS_ALLOWED_ORIGINS: z.string().default('http://localhost:3001'),
   CORE_DATABASE_URL: z.string().url(),
+  // Redis — cache backing shared-kernel's ICacheStore port. Default matches
+  // docker-compose's redis service. A cache miss (or an unreachable Redis) is
+  // never fatal: the adapter degrades to a miss and the source is re-queried.
+  REDIS_URL: z.string().url().default('redis://localhost:6379'),
   JWT_PUBLIC_KEY: z.string().min(100),
   KAFKA_BROKERS: z.string().default('localhost:9092'),
   CORE_KAFKA_CLIENT_ID: z.string().default('core-api'),

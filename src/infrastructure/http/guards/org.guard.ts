@@ -48,10 +48,14 @@ export class OrgGuard implements CanActivate {
     // Đưa orgId (đã xác thực) vào AsyncLocalStorage cho repo đọc qua getTenantId().
     setTenantId(orgId)
 
-    // Nếu route khai báo @RequireOrgPermission, kiểm tra theo action (không theo role name)
-    const requiredPermissions = this.reflector.get<OrgPermissionValue[]>(
+    // Nếu route khai báo @RequireOrgPermission, kiểm tra theo action (không theo role name).
+    // getAllAndOverride (không phải get) — đọc metadata ở CẢ method lẫn class, method
+    // thắng. Bản cũ chỉ đọc getHandler(), nên decorator đặt ở class level bị bỏ qua
+    // ÂM THẦM: không lỗi, không cảnh báo, route tụt về "member nào cũng qua" (audit
+    // 2026-08-25). Không controller nào đang đặt ở class level, nhưng cái bẫy thì có thật.
+    const requiredPermissions = this.reflector.getAllAndOverride<OrgPermissionValue[]>(
       ORG_PERMISSION_KEY,
-      context.getHandler(),
+      [context.getHandler(), context.getClass()],
     )
     // AND, không phải OR — route khai báo nhiều permission nghĩa là cần đủ cả.
     const missing = requiredPermissions?.filter((p) => !permissions.includes(p)) ?? []
