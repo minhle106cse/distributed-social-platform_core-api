@@ -9,6 +9,12 @@ import { CheckMembershipQuery } from './check-membership.query'
 export interface CheckMembershipResult {
   isMember: boolean
   permissions: string[]
+  /**
+   * Returned so the CALLER can cache membership and the role's permission set
+   * as two entries invalidated by different writes (see CacheKeys). Callers
+   * still authorize on `permissions` — never by comparing this role name.
+   */
+  role: string
 }
 
 // Same read core-api's own OrgGuard performs for local HTTP requests, exposed
@@ -31,9 +37,9 @@ export class CheckMembershipHandler implements IQueryHandler<
 
   async execute(query: CheckMembershipQuery): Promise<CheckMembershipResult> {
     const role = await this.membershipQueryRepo.findRoleByOrgAndUser(query.orgId, query.userId)
-    if (!role) return { isMember: false, permissions: [] }
+    if (!role) return { isMember: false, permissions: [], role: '' }
 
     const permissions = await this.permissionResolver.resolve(query.orgId, role)
-    return { isMember: true, permissions }
+    return { isMember: true, permissions, role }
   }
 }

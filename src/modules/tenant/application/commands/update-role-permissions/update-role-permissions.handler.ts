@@ -1,10 +1,16 @@
-import { Injectable } from '@nestjs/common'
+import { Inject, Injectable } from '@nestjs/common'
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino'
 import type { ITransactionalCommandHandler } from '@distributed-social-platform/shared-kernel'
 import type { CoreApiRepos } from '@/common/database/core-api-repos'
 import { CommandHandler } from '@/infrastructure/cqrs/decorators/command-handler.decorator'
 import { OrgRole } from '@/modules/tenant/domain/org-rbac'
-import { isValidOrgPermission, logAudit } from '@distributed-social-platform/shared-kernel'
+import {
+  CACHE_STORE,
+  CacheKeys,
+  isValidOrgPermission,
+  logAudit,
+} from '@distributed-social-platform/shared-kernel'
+import type { ICacheStore } from '@distributed-social-platform/shared-kernel'
 import {
   CannotModifyOwnerPermissionsError,
   InvalidOrgPermissionError,
@@ -22,6 +28,7 @@ export class UpdateRolePermissionsHandler implements ITransactionalCommandHandle
 
   constructor(
     @InjectPinoLogger(UpdateRolePermissionsHandler.name) private readonly logger: PinoLogger,
+    @Inject(CACHE_STORE) private readonly cache: ICacheStore,
   ) {}
 
   async execute(command: UpdateRolePermissionsCommand, tx: CoreApiRepos): Promise<void> {
@@ -44,5 +51,30 @@ export class UpdateRolePermissionsHandler implements ITransactionalCommandHandle
       actorUserId: command.actorUserId,
       metadata: { orgId: command.orgId, role: command.role, permissions: unique },
     })
+  }
+
+  /**
+   * Drop the cached permission set for this role so search-service and
+   * notification-service stop serving the OLD one. They cache
+   * `org-permissions:{orgId}:{role}` for 30s; without this, an OWNER's edit
+   * would not take effect there for up to that long — which defeats the point
+   * of Org RBAC being editable at runtime.
+   *
+   * ⚠️ MUST be afterCommit, not inside `execute`. Deleting before the commit
+   * lands opens the classic cache-aside race: a concurrent reader misses,
+   * reads the still-uncommitted OLD row, and re-populates the cache — then the
+   * commit lands and the stale value sits there for a full TTL. Deleting after
+   * the commit leaves only a microsecond-wide version of that race, against
+   * the 30s it removes.
+   *
+   * One DELETE, not one per member: that is exactly why the entry is keyed by
+   * (orgId, role) rather than per user (see CacheKeys.orgPermissions).
+   *
+   * CommandBus swallows anything thrown here — correct, since the database work
+   * has already committed — so a failed invalidation degrades to the 30s TTL it
+   * was shortening, and the adapter logs it at warn.
+   */
+  async afterCommit(command: UpdateRolePermissionsCommand): Promise<void> {
+    await this.cache.del(CacheKeys.orgPermissions(command.orgId, command.role))
   }
 }

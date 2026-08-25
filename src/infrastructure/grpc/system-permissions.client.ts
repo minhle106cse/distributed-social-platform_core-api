@@ -2,6 +2,7 @@ import { Inject, Injectable, OnModuleDestroy } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import * as grpc from '@grpc/grpc-js'
 import {
+  CACHE_STORE,
   CacheKeys,
   SystemRbacClient,
   attachInternalGrpcSecret,
@@ -10,7 +11,6 @@ import {
   getCurrentTraceparent,
   type ICacheStore,
 } from '@distributed-social-platform/shared-kernel'
-import { CACHE_STORE } from '@/infrastructure/cache/redis-cache.store'
 import { SystemRbacGrpcCaller } from './system-rbac-grpc.caller'
 
 const DEADLINE_MS = 3000

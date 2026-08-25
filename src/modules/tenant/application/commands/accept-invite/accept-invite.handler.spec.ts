@@ -31,12 +31,15 @@ function buildInvite(overrides: Partial<Parameters<typeof OrgInvite.rehydrate>[0
 }
 
 describe('AcceptInviteHandler', () => {
+  const mockCache = { get: jest.fn(), set: jest.fn(), del: jest.fn() }
+
   let handler: AcceptInviteHandler
   let tx: CoreApiRepos
   let mockInviteRepo: jest.Mocked<IOrgInviteRepository>
   let mockMembershipRepo: jest.Mocked<IMembershipRepository>
 
   beforeEach(() => {
+    mockCache.del.mockClear()
     mockInviteRepo = {
       save: jest.fn(),
       findByToken: jest.fn(),
@@ -47,7 +50,7 @@ describe('AcceptInviteHandler', () => {
       save: jest.fn(),
     }
 
-    handler = new AcceptInviteHandler()
+    handler = new AcceptInviteHandler(mockCache)
     tx = { invites: mockInviteRepo, memberships: mockMembershipRepo } as unknown as CoreApiRepos
   })
 
@@ -106,5 +109,16 @@ describe('AcceptInviteHandler', () => {
     expect(invite.isUsed()).toBe(true)
     expect(invite.usedBy).toBe('user-2')
     expect(mockInviteRepo.save).toHaveBeenCalledWith(invite)
+  })
+
+  // `{isMember:false}` is a cacheable answer (a completed lookup), so a
+  // negative entry could lock the new member out of the org they just joined.
+  it('drops the negative membership entry after commit', async () => {
+    await handler.afterCommit(new AcceptInviteCommand('token-1', 'user-2'), {
+      orgId: 'org-1',
+      role: 'MEMBER',
+    })
+
+    expect(mockCache.del).toHaveBeenCalledWith('membership:org-1\u0000user-2')
   })
 })

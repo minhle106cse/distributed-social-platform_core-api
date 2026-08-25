@@ -12,12 +12,15 @@ jest.mock('uuid', () => ({
 }))
 
 describe('UpdateMemberRoleHandler', () => {
+  const mockCache = { get: jest.fn(), set: jest.fn(), del: jest.fn() }
+
   let handler: UpdateMemberRoleHandler
   let tx: CoreApiRepos
   let mockMembershipRepo: jest.Mocked<IMembershipRepository>
   let mockLogger: jest.Mocked<PinoLogger>
 
   beforeEach(() => {
+    mockCache.del.mockClear()
     mockMembershipRepo = {
       findByOrgAndUser: jest.fn(),
       save: jest.fn(),
@@ -29,7 +32,7 @@ describe('UpdateMemberRoleHandler', () => {
       error: jest.fn(),
     } as unknown as jest.Mocked<PinoLogger>
 
-    handler = new UpdateMemberRoleHandler(mockLogger)
+    handler = new UpdateMemberRoleHandler(mockLogger, mockCache)
     tx = { memberships: mockMembershipRepo } as unknown as CoreApiRepos
   })
 
@@ -82,5 +85,14 @@ describe('UpdateMemberRoleHandler', () => {
       }),
       expect.any(String),
     )
+  })
+
+  it('invalidates only the MEMBERSHIP entry after commit — no role permission list changed', async () => {
+    await handler.afterCommit(
+      new UpdateMemberRoleCommand('org-1', 'user-2', OrgRole.ADMIN, 'actor-1'),
+    )
+
+    expect(mockCache.del).toHaveBeenCalledTimes(1)
+    expect(mockCache.del).toHaveBeenCalledWith('membership:org-1\u0000user-2')
   })
 })

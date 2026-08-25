@@ -10,7 +10,14 @@ import type { IOrgRolePermissionReader } from '../repositories/org-role-permissi
 // the exact kind of drift bug already caught once for
 // SUPER_ADMIN/SystemPermission (see .ai/KNOWLEDGE_INDEX.md,
 // "super-admin-implicit-all-never-wired-into-jwt").
-// TODO(Phase 3): cache kết quả vào Redis (key org_perms:{orgId}:{role}, TTL 5') + invalidate khi update.
+// NOT cached here, deliberately (re-assessed 2026-08-25). This runs inside
+// core-api's own OrgGuard, i.e. one query against core_db in-process — there is
+// no cross-service hop to avoid, which is the whole reason search-service and
+// notification-service cache the same answer. The cache those two use
+// (`CacheKeys.orgPermissions`, invalidated in UpdateRolePermissionsHandler's
+// afterCommit) is already keyed by (orgId, role), so wiring OrgGuard onto it
+// later needs no new key, no new invalidation, and no proto change — only a
+// decision that a local DB round-trip per request is worth removing.
 //
 // Deliberately framework-agnostic (2026-07-25 fix) — this is Domain layer,
 // so it must not import @nestjs/common. Was the ONLY file under any

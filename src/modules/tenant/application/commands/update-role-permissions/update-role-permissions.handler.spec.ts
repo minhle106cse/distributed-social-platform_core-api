@@ -11,12 +11,15 @@ import { UpdateRolePermissionsHandler } from './update-role-permissions.handler'
 import { UpdateRolePermissionsCommand } from './update-role-permissions.command'
 
 describe('UpdateRolePermissionsHandler', () => {
+  const mockCache = { get: jest.fn(), set: jest.fn(), del: jest.fn() }
+
   let handler: UpdateRolePermissionsHandler
   let tx: CoreApiRepos
   let mockRepo: jest.Mocked<IOrgRolePermissionRepository>
   let mockLogger: jest.Mocked<PinoLogger>
 
   beforeEach(() => {
+    mockCache.del.mockClear()
     mockRepo = {
       seedDefaults: jest.fn(),
       replaceForRole: jest.fn(),
@@ -30,7 +33,7 @@ describe('UpdateRolePermissionsHandler', () => {
       error: jest.fn(),
     } as unknown as jest.Mocked<PinoLogger>
 
-    handler = new UpdateRolePermissionsHandler(mockLogger)
+    handler = new UpdateRolePermissionsHandler(mockLogger, mockCache)
     tx = { rolePermissions: mockRepo } as unknown as CoreApiRepos
   })
 
@@ -97,5 +100,22 @@ describe('UpdateRolePermissionsHandler', () => {
       }),
       expect.any(String),
     )
+  })
+
+  // Without this, an OWNER's edit would not reach search-service /
+  // notification-service for up to the 30s cache TTL — which defeats the point
+  // of Org RBAC being editable at runtime.
+  it('invalidates the ROLE permission entry after commit — one key, not one per member', async () => {
+    const command = new UpdateRolePermissionsCommand(
+      'org-1',
+      OrgRole.MEMBER,
+      ['knowledge:read'],
+      'actor-1',
+    )
+
+    await handler.afterCommit(command)
+
+    expect(mockCache.del).toHaveBeenCalledTimes(1)
+    expect(mockCache.del).toHaveBeenCalledWith('org-permissions:org-1\u0000MEMBER')
   })
 })
